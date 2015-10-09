@@ -4,19 +4,20 @@ from tornado import gen
 from tornado.options import parse_command_line
 from WordBot import WordBot
 from tomorrow import threads
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
 
-bot = WordBot()	 
-		 
+bot = WordBot()
+executor = ThreadPoolExecutor(max_workers = 8)	 
+mainProcessPool = ProcessPoolExecutor(max_workers = 8) 
+
 class WordBotHandler(tornado.web.RequestHandler):
-			
-	@tornado.web.asynchronous
-	@gen.coroutine
+	
 	def get(self):
-		result = yield gen.Task(bot.getUpdates)
-		print result
+		#result = yield gen.Task(bot.getUpdates)
+		result = executor.submit(bot.getUpdates)
+		result.add_done_callback(executor_callback)
 		self.write('Done')
-		self.finish()
-								
+							
 	def post(self): 
 		updates = json.loads(self.body)
 		print updates
@@ -25,8 +26,11 @@ application = tornado.web.Application([
 	(r"/WordBot",WordBotHandler),
 ])
  
- 
-@threads(8)
+def executor_callback(future):
+	print future.result()
+	return
+
+
 def run():
 	parse_command_line()
 	application.listen(8888)
@@ -34,4 +38,6 @@ def run():
 	
 if __name__ == "__main__":
 	parse_command_line()
-	run()
+	for _ in xrange(8):
+		mainProcessPool.submit(run)
+		print "Process " + str(_)

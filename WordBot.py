@@ -11,6 +11,8 @@ class WordBot(tornado.web.RequestHandler):
 		self.offset = ''
 		self.URL = 'https://api.telegram.org/bot' + bot_token
 		self.session = requests.Session()
+		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=2))
+		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
 		self.http_client = AsyncHTTPClient()
 		self.startMessage = '''
 							Hi! This is a multifuntional dictionary bot.
@@ -26,8 +28,9 @@ class WordBot(tornado.web.RequestHandler):
 							'''
 							
 		
-	def getUpdates(self,callback):
-		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset))
+	def getUpdates(self):
+		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset),verify=False)
+		print "Got update"
 		updates = json.loads(response.text)
 		if updates['result']:
 			self.offset = updates['result'][0]['update_id'] + 1
@@ -39,10 +42,10 @@ class WordBot(tornado.web.RequestHandler):
 				if query[0] == '/define':
 					message = self.getWord(query[1])
 					self.sendMessage(message,chat_id)
-		callback(True)
+		return True
 	
 	def getWord(self,word):
-		response = self.session.get(glosbe_url + str(word))
+		response = self.session.get(glosbe_url + str(word),verify=False)
 		#soup = BeautifulSoup(response.text)
 		#data = soup.findAll('div',{'class':'def-list'})
 		data = json.loads(response.text)
@@ -52,10 +55,12 @@ class WordBot(tornado.web.RequestHandler):
 				message = message + meaning['text'].encode('utf-8') + '\n'
 		except KeyError:
 			pass
+		print "Fetched word"
 		return message
 		#return ('\n'.join(data[0].text.strip().split('\n\n'))).encode('utf-8')	
 		
 	def sendMessage(self,message,chat_id):
-		response = self.session.get(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + str(message))
+		response = self.session.get(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + str(message),verify=False)
+		print "Sent message"
 		#response = self.http_client.fetch(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + str(message))
 		
