@@ -1,9 +1,11 @@
 import requests,sys
 from bs4 import BeautifulSoup
-from config import base_url,bot_token,glosbe_url
+from config import bot_token,start_message,wordnik_url,wordnik_api_key
 import json
 from tornado.httpclient import AsyncHTTPClient
 import tornado.web
+from cachetools import LFUCache
+from collections import Counter
 
 class WordBot(tornado.web.RequestHandler):
 	
@@ -14,19 +16,9 @@ class WordBot(tornado.web.RequestHandler):
 		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=2))
 		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
 		self.http_client = AsyncHTTPClient()
-		self.startMessage = '''
-							Hi! This is a multifuntional dictionary bot.
-							
-							Commands you can run
-							=====================					
-							/define [word] : Gets the word's meaning.(only this works)
-							/origin [word] : Gets the word's etymology.
-							/synonyms [word] : Gets similar words.
-							/antonyms [word] : Gets opposites.
-							/use [word] : Gets usage examples. 
-							/all [word] : Gets all of the above.
-							'''
-							
+		self.cache = LFUCache(maxsize = 100)
+		self.startMessage = start_message
+		self.partCounter = Counter()
 		
 	def getUpdates(self):
 		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset),verify=False)
@@ -39,28 +31,30 @@ class WordBot(tornado.web.RequestHandler):
 			if query[0] == '/start':
 				self.sendMessage(self.startMessage,chat_id)
 			if len(query) > 1:
+				word = ' '.join(query[1::]).lower()
+				if self.cache.get(word):
+					wordData = self.cache.get(word)
+				else:
+					wordData = self.getWord(word)
+					self.cache.update({word:wordData})
 				if query[0] == '/define':
-					message = self.getWord(query[1])
+					message = 'Word: ' +  word + '\n'
+					message += '=' * (len(word) + 7) + '\n'
+					for definition in wordData:
+						if self.partCounter[definition['partOfSpeech']] < 2:
+							message += definition['partOfSpeech'] + ': ' +  definition['text'] + '\n\n'
+						self.partCounter[definition['partOfSpeech']] += 1
 					self.sendMessage(message,chat_id)
+					self.partCounter.clear()
 		return True
 	
 	def getWord(self,word):
-		response = self.session.get(glosbe_url + str(word),verify=False)
-		#soup = BeautifulSoup(response.text)
-		#data = soup.findAll('div',{'class':'def-list'})
-		data = json.loads(response.text)
-		message = ''
-		try:
-			for meaning in data['tuc'][0]['meanings']:
-				message = message + meaning['text'].encode('utf-8') + '\n'
-		except KeyError:
-			pass
-		print "Fetched word"
-		return message
-		#return ('\n'.join(data[0].text.strip().split('\n\n'))).encode('utf-8')	
+		url = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
+		response = self.session.get(url,verify=False)
+		data = json.loads(response.text.encode('utf-8'))
+		return data
 		
 	def sendMessage(self,message,chat_id):
-		response = self.session.get(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + str(message),verify=False)
+		response = self.session.get(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + message.encode('utf-8'),verify=False)
 		print "Sent message"
-		#response = self.http_client.fetch(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + str(message))
 		

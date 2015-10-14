@@ -13,7 +13,6 @@ mainProcessPool = ProcessPoolExecutor(max_workers = 8)
 class WordBotHandler(tornado.web.RequestHandler):
 	
 	def get(self):
-		#result = yield gen.Task(bot.getUpdates)
 		result = executor.submit(bot.getUpdates)
 		result.add_done_callback(executor_callback)
 		self.write('Done')
