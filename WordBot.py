@@ -18,7 +18,6 @@ class WordBot(tornado.web.RequestHandler):
 		self.http_client = AsyncHTTPClient()
 		self.cache = LFUCache(maxsize = 100)
 		self.startMessage = start_message
-		self.partCounter = Counter()
 		
 	def getUpdates(self):
 		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset),verify=False)
@@ -28,55 +27,91 @@ class WordBot(tornado.web.RequestHandler):
 			self.offset = updates['result'][0]['update_id'] + 1
 			query = updates['result'][0]['message']['text'].split()
 			chat_id = updates['result'][0]['message']['chat']['id']
+			self.session.get(self.URL + '/sendChatAction?chat_id=' + str(chat_id) +'&action=typing',verify=False)
 			if query[0] == '/start':
 				self.sendMessage(self.startMessage,chat_id)
 			if len(query) > 1:
 				word = ' '.join(query[1::]).lower()
+				message = 'Word: ' +  word + '\n'
+				message += '=' * (len(word) + 7) + '\n'
 				if self.cache.get(word):
 					wordData = self.cache.get(word)
 				else:
-					wordData = self.getWord(word)
+					wordData = self.getWordData(word)
 					self.cache.update({word:wordData})
-				if query[0] == '/define':
-					message = 'Word: ' +  word + '\n'
-					message += '=' * (len(word) + 7) + '\n'
-					for definition in wordData:
-						if self.partCounter[definition['partOfSpeech']] < 2:
-							message += definition['partOfSpeech'] + ': ' +  definition['text'] + '\n\n'
-						self.partCounter[definition['partOfSpeech']] += 1
-					self.sendMessage(message,chat_id)
-					self.partCounter.clear()
-				elif query[0] == '/synonyms':
-					message = 'Word: ' +  word + '\n'
-					message += '=' * (len(word) + 7) + '\n'
+				if query[0] in ['/define','/all']:
+					message += "Definitions :-" + '\n'
+					message += '-' * 17 + '\n'
+					definitions = self.getDefinitions(wordData)
+					if not definitions:
+						message += 'No definitions found.\n'
+					for definition in definitions:
+						message += definition[0] + ': ' +  definition[1] + '\n\n'
+				if query[0] in ['/synonyms','/all']:
 					message += "Synonyms :-" + '\n'
 					message += '-' * 17 + '\n'
-					for relatedWords in wordData[0]['relatedWords']:
-						if relatedWords['relationshipType'] in ['synonym','same-context']:
-							for synonym in relatedWords['words']:
-								message += synonym + '\n'
-					self.sendMessage(message,chat_id)
-				elif query[0] == '/antonyms':
-					message = 'Word: ' +  word + '\n'
-					message += '=' * (len(word) + 7) + '\n'
+					synonyms = self.getSynonyms(wordData)
+					if not synonyms:
+						message += 'No synonyms found.\n'
+					for synonym in synonyms[:5]:
+						message += synonym + '\n'
+					message += '\n'
+				if query[0] in ['/antonyms','/all']:
 					message += "Antonyms :-" + '\n'
 					message += '-' * 17 + '\n'
-					for relatedWords in wordData[0]['relatedWords']:
-						if relatedWords['relationshipType'] in ['antonym']:
-							for synonym in relatedWords['words']:
-								message += synonym + '\n'
-					self.sendMessage(message,chat_id)
-				elif query[0] == '/use':
-					message = 'Word: ' +  word + '\n'
-					message += '=' * (len(word) + 7) + '\n'
+					antonyms = self.getAntonyms(wordData)
+					if not antonyms:
+						message += 'No antonyms found.\n\n'
+					for antonym in antonyms[:5]:
+						message += antonym + '\n'
+				if query[0] in ['/use','/all']:
 					message += "Examples :-" + '\n'
 					message += '-' * 17 + '\n'
-					for index,example in enumerate(wordData[0]['exampleUses']):
-						message += str(index+1) + ") " + example['text'].replace('\n','') + '\n\n'
-					self.sendMessage(message,chat_id)
+					examples = self.getExamples(wordData)
+					if not examples:
+						message += 'No examples found.'
+					for index,example in enumerate(examples[:5]):
+						message += str(index+1) + ") " + example + '\n\n'			
+				self.sendMessage(message,chat_id)
 		return True
 	
-	def getWord(self,word):
+	def getDefinitions(self,wordData):
+		partCounter = Counter()
+		definitions = []
+		for definition in wordData:
+			if partCounter[definition['partOfSpeech']] < 2:
+				definitions.append((definition['partOfSpeech'],definition['text']))
+				partCounter[definition['partOfSpeech']] += 1
+		return definitions
+
+	
+	def getSynonyms(self,wordData):
+		synonyms = []
+		for relatedWords in wordData[0]['relatedWords']:
+			if relatedWords['relationshipType'] == 'synonym':
+				for synonym in relatedWords['words']:
+					synonyms.append(synonym)
+		for relatedWords in wordData[0]['relatedWords']:
+			if relatedWords['relationshipType']  == 'same-context':
+				for synonym in relatedWords['words']:
+					synonyms.append(synonym)
+		return synonyms
+	
+	def getAntonyms(self,wordData):
+		antonyms = []
+		for relatedWords in wordData[0]['relatedWords']:
+			if relatedWords['relationshipType']  == 'antonym':
+				for antonym in relatedWords['words']:
+					antonyms.append(antonym)
+		return antonyms
+		
+	def getExamples(self,wordData):
+		examples = []
+		for index,example in enumerate(wordData[0]['exampleUses']):
+			examples.append(example['text'].replace('\n',''))
+		return examples
+		
+	def getWordData(self,word):
 		url1 = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
 		url2 = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
 		url3 = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
