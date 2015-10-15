@@ -46,13 +46,51 @@ class WordBot(tornado.web.RequestHandler):
 						self.partCounter[definition['partOfSpeech']] += 1
 					self.sendMessage(message,chat_id)
 					self.partCounter.clear()
+				elif query[0] == '/synonyms':
+					message = 'Word: ' +  word + '\n'
+					message += '=' * (len(word) + 7) + '\n'
+					message += "Synonyms :-" + '\n'
+					message += '-' * 17 + '\n'
+					for relatedWords in wordData[0]['relatedWords']:
+						if relatedWords['relationshipType'] in ['synonym','same-context']:
+							for synonym in relatedWords['words']:
+								message += synonym + '\n'
+					self.sendMessage(message,chat_id)
+				elif query[0] == '/antonyms':
+					message = 'Word: ' +  word + '\n'
+					message += '=' * (len(word) + 7) + '\n'
+					message += "Antonyms :-" + '\n'
+					message += '-' * 17 + '\n'
+					for relatedWords in wordData[0]['relatedWords']:
+						if relatedWords['relationshipType'] in ['antonym']:
+							for synonym in relatedWords['words']:
+								message += synonym + '\n'
+					self.sendMessage(message,chat_id)
+				elif query[0] == '/use':
+					message = 'Word: ' +  word + '\n'
+					message += '=' * (len(word) + 7) + '\n'
+					message += "Examples :-" + '\n'
+					message += '-' * 17 + '\n'
+					for index,example in enumerate(wordData[0]['exampleUses']):
+						message += str(index+1) + ") " + example['text'].replace('\n','') + '\n\n'
+					self.sendMessage(message,chat_id)
 		return True
 	
 	def getWord(self,word):
-		url = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
-		response = self.session.get(url,verify=False)
-		data = json.loads(response.text.encode('utf-8'))
-		return data
+		url1 = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
+		url2 = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
+		url3 = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
+		url4 = wordnik_url + word + '/etymologies?api_key=' + wordnik_api_key
+		urls = [url1,url2,url3,url4]
+		data = []
+		for url in urls:
+			response = self.session.get(url,verify=False)
+			data.append(json.loads(response.text.encode('utf-8')))
+		wordData = data[0]
+		wordData[0]['exampleUses'] = data[1]['examples']
+		wordData[0]['relatedWords'] = data[2]
+		wordData[0]['etymologies'] = data[3]
+		return wordData
 		
 	def sendMessage(self,message,chat_id):
 		response = self.session.get(self.URL + '/sendMessage?chat_id=' + str(chat_id) +'&text=' + message.encode('utf-8'),verify=False)
