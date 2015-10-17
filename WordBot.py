@@ -138,8 +138,11 @@ class WordBot():
 		urls = [url1,url2,url3]
 		data = []
 		for url in urls:
-			response = self.session.get(url,verify=False)
-			data.append(json.loads(response.text.encode('utf-8')))
+			try:
+				response = self.session.get(url,verify=False)
+				data.append(json.loads(response.text.encode('utf-8')))
+			except ValueError:
+				return None
 		if not data[0]:
 			return None
 		wordData = data[0]
