@@ -32,13 +32,15 @@ class WordBot():
 	
 	def makeMessage(self,query):
 		message = self.startMessage
-		query = query.split()
-		if query[0] == '/stop':
+		if query == '/stop':
 			message = 'Bot disabled.'
-		elif query[0] == '/today':
+		elif query == '/today':
 			wordData = self.getWordOfTheDay()
-			query = ['/define',wordData[0]['word']]
+			query = '/define ' + wordData[0]['word']
+		query = query.split()
 		if len(query) > 1:
+			if query[0] not in ['/define','/synonyms','/antonyms','/use','/all']:
+				return self.startMessage
 			word = ' '.join(query[1::]).lower()
 			message = 'Word: ' +  word + '\n'
 			message += '=' * (len(word) + 7) + '\n'
