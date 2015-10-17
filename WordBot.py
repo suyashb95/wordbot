@@ -47,6 +47,8 @@ class WordBot():
 				wordData = self.cache.get(word)
 			else:
 				wordData = self.getWord(word)
+				if wordData is None:
+					return 'Word not found.'
 				self.cache.update({word:wordData})
 			if query[0] in ['/define','/all']:
 				message += 'Definitions :-' + '\n'
@@ -136,6 +138,8 @@ class WordBot():
 		for url in urls:
 			response = self.session.get(url,verify=False)
 			data.append(json.loads(response.text.encode('utf-8')))
+		if not data[0]:
+			return None
 		wordData = data[0]
 		wordData[0]['examples'] = data[1]['examples']
 		wordData[0]['relatedWords'] = data[2]
