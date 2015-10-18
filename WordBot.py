@@ -36,7 +36,7 @@ class WordBot():
 			message = 'Bot disabled.'
 		elif query == '/today':
 			wordData = self.getWordOfTheDay()
-			query = '/define ' + wordData[0]['word']
+			query = '/define ' + wordData['word']
 		query = query.split()
 		if len(query) > 1:
 			if query[0] not in ['/define','/synonyms','/antonyms','/use','/all']:
@@ -51,50 +51,62 @@ class WordBot():
 				wordData = self.getWord(word)
 				if wordData is None:
 					return 'Word not found.'
-				self.cache.update({word:wordData})
 			if query[0] in ['/define','/all']:
-				message += 'Definitions :-' + '\n'
-				message += '-' * 20 + '\n'
-				definitions = self.getDefinitions(wordData)
-				if not definitions:
-					message += 'No definitions found.\n'
-				for definition in definitions:
-					message += definition[0] + ': ' +  definition[1] + '\n\n'
+				message += wordData['definitions'] + '\n'
 			if query[0] in ['/synonyms','/all']:
-				message += 'Synonyms :-' + '\n'
-				message += '-' * 20 + '\n'
-				synonyms = self.getSynonyms(wordData)
-				if not synonyms:
-					message += 'No synonyms found.\n'
-				for synonym in synonyms[:5]:
-					message += synonym + '\n'
-				message += '\n'
+				message += wordData['synonyms'] + '\n'
 			if query[0] in ['/antonyms','/all']:
-				message += 'Antonyms :-' + '\n'
-				message += '-' * 20 + '\n'
-				antonyms = self.getAntonyms(wordData)
-				if not antonyms:
-					message += 'No antonyms found.\n'
-				for antonym in antonyms[:5]:
-					message += antonym + '\n'
-				message += '\n'
+				message += wordData['antonyms'] + '\n'
 			if query[0] in ['/use','/all']:
-				message += 'Examples :-' + '\n'
-				message += '-' * 18 + '\n'
-				examples = self.getExamples(wordData)
-				if not examples:
-					message += 'No examples found.\n'
-				for index,example in enumerate(examples[:5]):
-					message += str(index+1) + ". " + example + '\n\n'
-				message += '\n'		
+				message += wordData['examples'] + '\n'	
 		return message
+	
+	def updateCache(self,word,wordData):
+		dataDict = {}
+		definitionText = 'Definitions :-' + '\n'
+		definitionText += '-' * 20 + '\n'
+		synonymsText = 'Synonyms :-' + '\n'
+		synonymsText += '-' * 20 + '\n'
+		antonymsText = 'Antonyms :-' + '\n'
+		antonymsText += '-' * 20 + '\n'
+		examplesText = 'Exmaples :-' + '\n'
+		examplesText += '-' * 20 + '\n'
+		definitions = self.getDefinitions(wordData)
+		synonyms = self.getSynonyms(wordData)
+		antonyms = self.getAntonyms(wordData)
+		examples = self.getExamples(wordData)
+		if not definitions:
+			definitionText += 'No definitions found.\n'
+		if not synonyms:
+			synonymsText += 'No synonyms found.\n'
+		if not antonyms:
+			antonymsText += 'No antonyms found.\n'
+		if not examples:
+			examplesText += 'No examples found.\n'
+			
+		for definition in self.getDefinitions(wordData):
+			definitionText += definition[0] + '\n' + definition[1] + ': ' +  definition[2] + '\n\n'
+		for synonym in synonyms[:5]:
+			synonymsText += synonym + '\n'
+		for antonym in antonyms[:5]:
+			antonymsText += antonym + '\n'
+		for index,example in enumerate(examples[:5]):
+			examplesText += str(index+1) + ". " + example + '\n\n'
 		
+		dataDict['word'] = word
+		dataDict['definitions'] = definitionText
+		dataDict['synonyms'] = synonymsText
+		dataDict['antonyms'] = antonymsText
+		dataDict['examples'] = examplesText
+		self.cache.update({word:dataDict})
+		return dataDict 
+			
 	def getDefinitions(self,wordData):
 		partCounter = Counter()
 		definitions = []
 		for definition in wordData:
 			if partCounter[definition['partOfSpeech']] < 2:
-				definitions.append((definition['partOfSpeech'],definition['text']))
+				definitions.append((definition['attributionText'],definition['partOfSpeech'],definition['text']))
 				partCounter[definition['partOfSpeech']] += 1
 		return definitions
 
@@ -105,10 +117,12 @@ class WordBot():
 			if relatedWords['relationshipType'] == 'synonym':
 				for synonym in relatedWords['words']:
 					synonyms.append(synonym)
+		
 		for relatedWords in wordData[0]['relatedWords']:
-			if relatedWords['relationshipType']  == 'same-context':
+			if relatedWords['relationshipType']  == 'cross-reference':
 				for synonym in relatedWords['words']:
 					synonyms.append(synonym)
+		
 		return synonyms
 
 	def getAntonyms(self,wordData):
@@ -146,9 +160,15 @@ class WordBot():
 		if not data[0]:
 			return None
 		wordData = data[0]
-		wordData[0]['examples'] = data[1]['examples']
-		wordData[0]['relatedWords'] = data[2]
-		return wordData
+		try:
+			wordData[0]['examples'] = data[1]['examples']
+		except KeyError:
+			wordData[0]['examples'] = []
+		try:
+			wordData[0]['relatedWords'] = data[2]
+		except KeyError:
+			wordData[0]['relatedWords'] = []
+		return self.updateCache(word,wordData)
 	
 	def getWordOfTheDay(self):
 		today = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
@@ -163,13 +183,14 @@ class WordBot():
 			return wordData
 		url = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
 		wordData = [definition for definition in data[0]['definitions']]
+		for definition in wordData:
+			definition['attributionText'] = ''
 		wordData[0]['examples'] = data[0]['examples']
 		response = self.session.get(url,verify = False)
 		relatedWords = json.loads(response.text)
 		wordData[0]['relatedWords'] = relatedWords
 		wordData[0]['word'] = word
-		self.cache.update({word:wordData})
-		return wordData			
+		return self.updateCache(word,wordData)		
 			
 	def sendMessage(self,message,chat_id):
 		dataDict = {'chat_id':str(chat_id),
