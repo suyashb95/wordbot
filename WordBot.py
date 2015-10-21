@@ -52,14 +52,14 @@ class WordBot():
 				if wordData is None:
 					return 'Word not found.'
 			if query[0] in ['/define','/all']:
-				message += wordData['definitions'] + '\n'
+				message += wordData['definitions']
 			if query[0] in ['/synonyms','/all']:
-				message += wordData['synonyms'] + '\n'
+				message += wordData['synonyms']
 			if query[0] in ['/antonyms','/all']:
-				message += wordData['antonyms'] + '\n'
+				message += wordData['antonyms']
 			if query[0] in ['/use','/all']:
-				message += wordData['examples'] + '\n'	
-		return message
+				message += wordData['examples']	
+		return message + '\n'
 	
 	def updateCache(self,word,wordData):
 		dataDict = {}
