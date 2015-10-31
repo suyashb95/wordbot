@@ -41,7 +41,7 @@ class WordBot():
 		if len(query) > 1:
 			if query[0] not in ['/define','/synonyms','/antonyms','/use','/all']:
 				return self.startMessage
-			word = ' '.join(query[1::]).lower()
+			word = ' '.join(query[1::])
 			message = 'Word: ' +  word + '\n'
 			message += '=' * (len(word) + 7) + '\n'
 			if self.cache.get(word):
@@ -85,7 +85,10 @@ class WordBot():
 			examplesText += 'No examples found.\n'
 			
 		for definition in self.getDefinitions(wordData):
-			definitionText += definition[0] + '\n' + definition[1] + ': ' +  definition[2] + '\n\n'
+			if definition[0]:
+				definitionText += definition[0] + '\n' + definition[1] + ': ' +  definition[2] + '\n\n'
+			else:
+				definitionText += definition[1] + ': ' +  definition[2] + '\n\n'				
 		for synonym in synonyms[:5]:
 			synonymsText += synonym + '\n'
 		for antonym in antonyms[:5]:
