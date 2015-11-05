@@ -86,18 +86,18 @@ class WordBot():
 			
 		for definition in self.getDefinitions(wordData):
 			if definition[0]:
-				definitionText += definition[0] + '\n' + definition[1] + ': ' +  definition[2] + '\n\n'
-			elif definition[1]:
-				definitionText += definition[1] + ': ' +  definition[2] + '\n\n'
-			else:
-				definitionText += definition[2] + '\n\n'		
+				definitionText += definition[0] + '\n'
+			if definition[1]:
+				definitionText += definition[1] + ': '
+			definitionText += definition[2] + '\n\n'	
+		definitionText = definitionText[:-1]	
 		for synonym in synonyms[:5]:
 			synonymsText += synonym + '\n'
 		for antonym in antonyms[:5]:
 			antonymsText += antonym + '\n'
 		for index,example in enumerate(examples[:5]):
 			examplesText += str(index+1) + ". " + example + '\n\n'
-		
+		examplesText = examplesText[:-1]
 		dataDict['word'] = word
 		dataDict['definitions'] = definitionText
 		dataDict['synonyms'] = synonymsText
