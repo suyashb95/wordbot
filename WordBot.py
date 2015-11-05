@@ -87,8 +87,10 @@ class WordBot():
 		for definition in self.getDefinitions(wordData):
 			if definition[0]:
 				definitionText += definition[0] + '\n' + definition[1] + ': ' +  definition[2] + '\n\n'
+			elif definition[1]:
+				definitionText += definition[1] + ': ' +  definition[2] + '\n\n'
 			else:
-				definitionText += definition[1] + ': ' +  definition[2] + '\n\n'				
+				definitionText += definition[2] + '\n\n'		
 		for synonym in synonyms[:5]:
 			synonymsText += synonym + '\n'
 		for antonym in antonyms[:5]:
@@ -108,9 +110,11 @@ class WordBot():
 		partCounter = Counter()
 		definitions = []
 		for definition in wordData:
-			if partCounter[definition['partOfSpeech']] < 2:
+			if 'partOfSpeech' in definition.keys() and partCounter[definition['partOfSpeech']] < 2:
 				definitions.append((definition['attributionText'],definition['partOfSpeech'],definition['text']))
 				partCounter[definition['partOfSpeech']] += 1
+			else:
+				definitions.append((definition['attributionText'],'',definition['text']))
 		return definitions
 
 
