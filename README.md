@@ -4,7 +4,7 @@ Telegram English Dictionary Bot
 This is a Telegram bot which fetches word definitions, synonyms, antonyms, usage examples and the word of the day from the Internet.
 It uses Wordnik's API to fetch data. 
 
-![alt tag](https://www.wordnik.com/img/wordnik_badge_a1.png)
+![alt tag](http://i.imgur.com/Jhvxues.png)
 
 Usage
 =====
