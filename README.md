@@ -2,7 +2,7 @@ Telegram English Dictionary Bot
 ===============================
 
 This is a Telegram bot which fetches word definitions, synonyms, antonyms, usage examples and the word of the day from the Internet.
-It uses Wordnik's API to fetch data. 
+It uses Wordnik's and Urbandictionary's API to fetch data. 
 
 ![alt tag](http://i.imgur.com/Jhvxues.png)
 
@@ -21,6 +21,7 @@ Usage
 * /all [word] : Gets all of the above.
 * /help : Send this message again.
 * /today: Gets the word of the day.
+* /ud [word/phrase]: Gets the topmost entry from Urbandictionary.
 
  
 Screenshots

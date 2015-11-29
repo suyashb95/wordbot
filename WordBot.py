@@ -12,9 +12,9 @@ class WordBot():
 		self.session = requests.Session()
 		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=2))
 		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
-		self.cache = LFUCache(maxsize = 200)
+		self.dictionaryCache = LFUCache(maxsize = 200)
+		self.urbandictionaryCache = LFUCache(maxsize = 200)
 		self.startMessage = start_message
-		self.keyboard = {"keyboard":[["/define"],["/synonyms"],["/antonyms"],["/examples"],["/all"]]}
 
 	def processUpdates(self):
 		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset),verify=False)
@@ -32,33 +32,41 @@ class WordBot():
 	
 	def makeMessage(self,query):
 		message = self.startMessage
-		if query == '/stop':
-			message = 'Bot disabled.'
-		elif query == '/today':
+		if query == '/today':
 			wordData = self.getWordOfTheDay()
 			query = '/define ' + wordData['word']
 		query = query.split()
 		if len(query) > 1:
-			if query[0] not in ['/define','/synonyms','/antonyms','/use','/all']:
+			if query[0] not in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
 				return self.startMessage
 			word = ' '.join(query[1::])
 			message = 'Word: ' +  word + '\n'
 			message += '=' * (len(word) + 7) + '\n'
-			if self.cache.get(word):
-				print "Fetching from cache"
-				wordData = self.cache.get(word)
+			if query[0] != '/ud':
+				if self.dictionaryCache.get(word):
+					print "Fetching from cache"
+					wordData = self.dictionaryCache.get(word)
+				else:
+					wordData = self.getWord(word)
+					if wordData is None:
+						return 'Word not found.'
+				if query[0] in ['/define','/all']:
+					message += wordData['definitions'] + '\n'
+				if query[0] in ['/synonyms','/all']:
+					message += wordData['synonyms'] + '\n'
+				if query[0] in ['/antonyms','/all']:
+					message += wordData['antonyms'] + '\n'
+				if query[0] in ['/use','/all']:
+					message += wordData['examples'] + '\n'
 			else:
-				wordData = self.getWord(word)
-				if wordData is None:
-					return 'Word not found.'
-			if query[0] in ['/define','/all']:
-				message += wordData['definitions'] + '\n'
-			if query[0] in ['/synonyms','/all']:
-				message += wordData['synonyms'] + '\n'
-			if query[0] in ['/antonyms','/all']:
-				message += wordData['antonyms'] + '\n'
-			if query[0] in ['/use','/all']:
-				message += wordData['examples'] + '\n'	
+				if self.urbandictionaryCache.get(word):
+					wordData = self.urbandictionaryCache.get(word)
+				else:
+					wordData = self.getUrbandictionaryWord(word)
+					if wordData is None:
+						return 'Word not found'
+				message += wordData['definition'] + '\n'
+				message += wordData['example']	
 		return message
 	
 	def updateCache(self,word,wordData):
@@ -103,8 +111,8 @@ class WordBot():
 		dataDict['synonyms'] = synonymsText
 		dataDict['antonyms'] = antonymsText
 		dataDict['examples'] = examplesText
-		self.cache.update({word:dataDict})
-		return dataDict 
+		self.dictionaryCache.update({word:dataDict})
+		return dataDict
 			
 	def getDefinitions(self,wordData):
 		partCounter = Counter()
@@ -153,10 +161,10 @@ class WordBot():
 		return etymology
 
 	def getWord(self,word):
-		url1 = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
-		url2 = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
-		url3 = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
-		urls = [url1,url2,url3]
+		def_url = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
+		example_url = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
+		related_url = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
+		urls = [def_url, example_url, related_url]
 		data = []
 		for url in urls:
 			try:
@@ -177,6 +185,32 @@ class WordBot():
 			wordData[0]['relatedWords'] = []
 		return self.updateCache(word,wordData)
 	
+	def getUrbandictionaryWord(self, word):
+		api_url = 'http://api.urbandictionary.com/v0/define?term='
+		response = self.session.get(api_url+word, verify=False)
+		data = json.loads(response.text.encode('utf-8'))
+		if data['result_type'] == 'no_results' or not data['list']:
+			return None
+		wordData = {}
+		wordData['definition'] = 'Definition :-' + '\n' +  '-' * 20 + '\n'
+		wordData['example'] = 'Example :-' + '\n' +  '-' * 20 + '\n'
+		try:
+			if data['list'][0]['definition']:
+				wordData['definition'] += data['list'][0]['definition'].strip() + '\n'
+			else:
+				return None
+		except KeyError:
+			return None
+		try:
+			if data['list'][0]['example']:
+				wordData['example'] += data['list'][0]['example'].strip() + '\n'
+			else:
+				wordData['example'] += 'No example found.'
+		except KeyError:
+			wordData['example'] += 'No example found.'			
+		self.urbandictionaryCache.update({word:wordData})
+		return wordData
+	
 	def getWordOfTheDay(self):
 		today = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d')
 		url = wordnik_url[:-10] + 'words.json/wordOfTheDay?api_key=' + wordnik_api_key + '&date=' + today
@@ -185,8 +219,8 @@ class WordBot():
 		response = self.session.get(url,verify = False)
 		data.append(json.loads(response.text.encode('utf-8')))
 		word = data[0]['word']
-		if self.cache.get(word):
-			wordData = self.cache.get(word)
+		if self.dictionaryCache.get(word):
+			wordData = self.dictionaryCache.get(word)
 			return wordData
 		url = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
 		wordData = [definition for definition in data[0]['definitions']]
