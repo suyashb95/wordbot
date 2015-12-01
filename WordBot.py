@@ -234,9 +234,9 @@ class WordBot():
 		return self.updateCache(word,wordData)		
 			
 	def sendMessage(self,message,chat_id):
+		print message.encode('utf-8')
 		dataDict = {'chat_id':str(chat_id),
-				'text':message.encode('utf-8'),
-				'reply_markup':self.keyboard}
+				'text':message.encode('utf-8')}
 		response = self.session.post(self.URL + '/sendMessage',data = dataDict)
 		if response.status_code == 200:
 			return True
