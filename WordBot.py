@@ -18,7 +18,6 @@ class WordBot():
 
 	def processUpdates(self):
 		response = self.session.get(self.URL + '/getUpdates?offset=' + str(self.offset),verify=False)
-		print "Got update"
 		status = False
 		updates = json.loads(response.text)
 		if updates['result']:
@@ -46,7 +45,6 @@ class WordBot():
 			message += '=' * (len(word) + 7) + '\n'
 			if query[0] != '/ud':
 				if self.dictionaryCache.get(word):
-					print "Fetching from cache"
 					wordData = self.dictionaryCache.get(word)
 				else:
 					wordData = self.getWord(word)
@@ -239,12 +237,9 @@ class WordBot():
 		return self.updateCache(word,wordData)		
 			
 	def sendMessage(self,message,chat_id):
-		print message.encode('utf-8')
 		dataDict = {'chat_id':str(chat_id),
 				'text':message.encode('utf-8')}
-		print dataDict
 		response = self.session.post(self.URL + '/sendMessage',data = dataDict)
-		print response.url, response.headers, response
 		if response.status_code == 200:
 			return True
 		else:
