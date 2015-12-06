@@ -34,6 +34,8 @@ class WordBot():
 		message = self.startMessage
 		if query == '/today':
 			wordData = self.getWordOfTheDay()
+			if wordData is None:
+				return 'Server error.'
 			query = '/define ' + wordData['word']
 		query = query.split()
 		if len(query) > 1:
@@ -161,7 +163,7 @@ class WordBot():
 		return etymology
 
 	def getWord(self,word):
-		def_url = wordnik_url + word + '/definitions?api_key=' + wordnik_api_key
+		def_url = wordnik_url + word + '/definitions?limit=15&api_key=' + wordnik_api_key
 		example_url = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
 		related_url = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
 		urls = [def_url, example_url, related_url]
@@ -217,7 +219,10 @@ class WordBot():
 		wordData = []
 		data = []
 		response = self.session.get(url,verify = False)
-		data.append(json.loads(response.text.encode('utf-8')))
+		try:
+			data.append(json.loads(response.text.encode('utf-8')))
+		except ValueError:
+			return None
 		word = data[0]['word']
 		if self.dictionaryCache.get(word):
 			wordData = self.dictionaryCache.get(word)
@@ -237,7 +242,9 @@ class WordBot():
 		print message.encode('utf-8')
 		dataDict = {'chat_id':str(chat_id),
 				'text':message.encode('utf-8')}
+		print dataDict
 		response = self.session.post(self.URL + '/sendMessage',data = dataDict)
+		print response.url, response.headers, response
 		if response.status_code == 200:
 			return True
 		else:
