@@ -30,16 +30,18 @@ class WordBot():
 		return status
 	
 	def makeMessage(self,query):
-		message = self.startMessage
+		message = ''
 		if query == '/today':
 			wordData = self.getWordOfTheDay()
 			if wordData is None:
 				return 'Server error.'
 			query = '/define ' + wordData['word']
+		elif query == '/help':
+			return self.startMessage
 		query = query.split()
 		if len(query) > 1:
 			if query[0] not in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
-				return self.startMessage
+				return message
 			word = ' '.join(query[1::])
 			message = 'Word: ' +  word + '\n'
 			message += '=' * (len(word) + 7) + '\n'
