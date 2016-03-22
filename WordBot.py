@@ -3,6 +3,17 @@ from config import bot_token,start_message,wordnik_url,wordnik_api_key
 import json,datetime
 from cachetools import LFUCache
 from collections import Counter
+import httplib, urllib2
+
+def patch_http_response_read(func):
+    def inner(*args):
+        try:
+            return func(*args)
+        except httplib.IncompleteRead, e:
+            return e.partial
+
+    return inner
+httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
 
 class WordBot():
 
@@ -10,8 +21,8 @@ class WordBot():
 		self.offset = ''
 		self.URL = 'https://api.telegram.org/bot' + bot_token
 		self.session = requests.Session()
-		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=2))
-		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=2))
+		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=5))
+		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
 		self.dictionaryCache = LFUCache(maxsize = 200)
 		self.urbandictionaryCache = LFUCache(maxsize = 200)
 		self.startMessage = start_message
@@ -29,7 +40,7 @@ class WordBot():
 			status = self.sendMessage(message,chat_id)
 		return status
 	
-	def makeMessage(self,query):
+	def makeMessage(self,query):		
 		message = ''
 		if query == '/today':
 			wordData = self.getWordOfTheDay()
@@ -189,8 +200,9 @@ class WordBot():
 	
 	def getUrbandictionaryWord(self, word):
 		api_url = 'http://api.urbandictionary.com/v0/define?term='
-		response = self.session.get(api_url+word, verify=False)
-		data = json.loads(response.text.encode('utf-8'))
+		#response = requests.get(api_url+word, verify=False)
+		response = urllib2.urlopen(api_url+word)
+		data = json.loads(response.read().encode('utf-8'))
 		if data['result_type'] == 'no_results' or not data['list']:
 			return None
 		wordData = {}
