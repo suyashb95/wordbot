@@ -202,7 +202,7 @@ class WordBot():
 		api_url = 'http://api.urbandictionary.com/v0/define?term='
 		#response = requests.get(api_url+word, verify=False)
 		response = urllib2.urlopen(api_url+word)
-		data = json.loads(response.read().encode('utf-8'))
+		data = json.loads(response.read().decode('utf-8'))
 		if data['result_type'] == 'no_results' or not data['list']:
 			return None
 		wordData = {}
