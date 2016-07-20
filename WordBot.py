@@ -182,6 +182,8 @@ class WordBot():
 		for url in urls:
 			try:
 				response = self.session.get(url,verify=False)
+				if response.status_code != 200:
+					return None
 				data.append(json.loads(response.text.encode('utf-8')))
 			except ValueError:
 				return None
