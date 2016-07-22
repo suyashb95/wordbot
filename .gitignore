@@ -64,3 +64,5 @@ multipart.py
 appengine_config.py
 *.pyc
 lib/
+main-2.py
+*.txt
