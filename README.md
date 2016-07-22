@@ -27,11 +27,11 @@ Usage
 Screenshots
 ===============
 
-![alt tag](http://i.imgur.com/AbN8wWc.png)
+![alt tag](http://i.imgur.com/JBE2BUw.png)
 
 
 
-![alt tag](http://i.imgur.com/pFXQ6HN.png)
+![alt tag](http://i.imgur.com/ld3Jj7m.png)
 
 Requirements
 ------------
