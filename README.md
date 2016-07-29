@@ -29,7 +29,7 @@ Usage
 Screenshots
 ===============
 
-![alt tag](http://i.imgur.com/WxkZqxP.gif)
+![alt tag](http://i.imgur.com/5bJNzkC.gif)
 
 Requirements
 ------------
