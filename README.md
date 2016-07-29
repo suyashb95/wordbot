@@ -13,6 +13,8 @@ Usage
 
 * Or send a message to this username: @LexicoBot
 
+* Inline mode is supported. 
+
 ###Allowed commands
 * /define [word] : Gets the word's meaning.
 * /synonyms [word] : Gets similar words.
@@ -27,11 +29,7 @@ Usage
 Screenshots
 ===============
 
-![alt tag](http://i.imgur.com/JBE2BUw.png)
-
-
-
-![alt tag](http://i.imgur.com/ld3Jj7m.png)
+![alt tag](http://i.imgur.com/WxkZqxP.gif)
 
 Requirements
 ------------
@@ -39,6 +37,8 @@ Requirements
 * Wordnik API
 * tornado==4.2.1
 * requests==2.7.0
+* pyTelegramBotAPI==2.1.5
+* cachetools==1.1.6
 
 
 

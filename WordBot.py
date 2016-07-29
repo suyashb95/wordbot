@@ -55,13 +55,12 @@ class WordBot():
 					description=desc
 				)
 				inline_answers = [query_result]
-			print inline_answers
 			self.bot.answer_inline_query(query.get('id'), inline_answers)
 		except Exception as e:
-			print(e)
+			pass
+			#sprint(e)
 
 	def handle_message(self, message):
-		print message
 		if 'new_chat_participant' in message:
 			return
 		query = message['text']
@@ -91,7 +90,8 @@ class WordBot():
 					if wordData is None:
 						wordData = self.getWord(word)
 					else:
-						print 'Cache hit ' + word 
+						pass
+						#print 'Cache hit ' + word 
 					if wordData is None:
 						return 'Word not found.'
 					if query[0] in ['/define','/all']:
@@ -266,7 +266,8 @@ class WordBot():
 			self.wordOfTheDayCache.clear()
 			self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay
 		else:
-			print 'Today Cache Hit ' + wordOfTheDay
+			pass
+			#print 'Today Cache Hit ' + wordOfTheDay
 		wordData = self.dictionaryCache.get(wordOfTheDay)
 		if not wordData:
 			url = wordnik_url + wordOfTheDay + '/relatedWords?api_key=' + wordnik_api_key
@@ -280,7 +281,7 @@ class WordBot():
 			wordData[0]['word'] = wordOfTheDay
 			return self.updateCache(wordOfTheDay, wordData)	
 		else:
-			print 'Cache hit ' + wordOfTheDay
+			#print 'Cache hit ' + wordOfTheDay
 			return wordData	
 
 
