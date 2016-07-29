@@ -1,9 +1,10 @@
 import requests, sys, json
-import httplib, urllib2, telepot
+import httplib, urllib2, telebot
 from config import bot_token, start_message, wordnik_url, wordnik_api_key
 from datetime import datetime
 from cachetools import LFUCache
 from collections import Counter
+from telebot import types
 
 
 def patch_http_response_read(func):
@@ -21,27 +22,55 @@ class WordBot():
 		self.dictionaryCache = LFUCache(maxsize = 200)
 		self.urbandictionaryCache = LFUCache(maxsize = 200)
 		self.wordOfTheDayCache = {}
-		self.bot = telepot.Bot(bot_token)
+		self.bot = telebot.TeleBot(bot_token)
 		self.session = requests.Session()
-		self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=5))
-		self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
-	
-	def runner(self):
-		self.bot.message_loop(self.handle_message)
+		self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=5))
+		self.session.mount('https://', requests.adapters.HTTPAdapter(max_retries=5))
+
+	def handle_inline(self, query):
+		try:
+			query_word = query.get('query')
+			default_word = self.getWordOfTheDay()
+			inline_answers = []
+			if default_word:
+				default_result = types.InlineQueryResultArticle(
+					'1', 
+					'Word of the day', 
+					types.InputTextMessageContent(
+						'*' + default_word['word'] + '*\n' + default_word['definitions'],
+						parse_mode='markdown'
+					),
+					description=default_word['word']
+				)
+				inline_answers = [default_result]
+			if query_word or query_word != '':
+				reply = self.make_reply('/define ' + query_word)
+				desc = reply if reply == 'Word not found.' else None
+				query_result = types.InlineQueryResultArticle('2', 
+					query_word, 
+					types.InputTextMessageContent(
+						reply,
+						parse_mode='markdown'
+					),
+					description=desc
+				)
+				inline_answers = [query_result]
+			print inline_answers
+			self.bot.answer_inline_query(query.get('id'), inline_answers)
+		except Exception as e:
+			print(e)
 
 	def handle_message(self, message):
 		print message
+		if 'new_chat_participant' in message:
+			return
 		query = message['text']
-		if "@LexicoBot" in query:
-			query = query.replace("@LexicoBot", '')
+		if '@LexicoBot' in query:
+			query = query.replace('@LexicoBot', '')
 		reply = self.make_reply(query)
-		if reply == '':
-			if message['chat']['type'] == 'private':
-				self.bot.sendChatAction(message['chat']['id'], 'typing')
-				self.bot.sendMessage(message['chat']['id'], start_message, parse_mode='markdown')
-		else:
-			self.bot.sendChatAction(message['chat']['id'], 'typing')
-			self.bot.sendMessage(message['chat']['id'], reply, parse_mode='markdown')
+		if reply != '':
+			self.bot.send_chat_action(message['chat']['id'], 'typing')
+			self.bot.send_message(message['chat']['id'], reply, parse_mode='markdown')
 	   
 	def make_reply(self, query):
 		if query in ['/start', '/help']:
@@ -62,7 +91,7 @@ class WordBot():
 					if wordData is None:
 						wordData = self.getWord(word)
 					else:
-						print "Cache hit " + word 
+						print 'Cache hit ' + word 
 					if wordData is None:
 						return 'Word not found.'
 					if query[0] in ['/define','/all']:
@@ -111,7 +140,7 @@ class WordBot():
 		for antonym in antonyms[:3]:
 			antonymsText += antonym + '\n'
 		for index,example in enumerate(examples[:3]):
-			examplesText += str(index+1) + ". " + example + '\n\n'
+			examplesText += str(index+1) + '. ' + example + '\n\n'
 		examplesText = examplesText[:-1]
 		dataDict['word'] = word
 		dataDict['definitions'] = definitionText
@@ -237,7 +266,7 @@ class WordBot():
 			self.wordOfTheDayCache.clear()
 			self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay
 		else:
-			print "Today Cache Hit " + wordOfTheDay
+			print 'Today Cache Hit ' + wordOfTheDay
 		wordData = self.dictionaryCache.get(wordOfTheDay)
 		if not wordData:
 			url = wordnik_url + wordOfTheDay + '/relatedWords?api_key=' + wordnik_api_key
@@ -251,13 +280,13 @@ class WordBot():
 			wordData[0]['word'] = wordOfTheDay
 			return self.updateCache(wordOfTheDay, wordData)	
 		else:
-			print "Cache hit " + wordOfTheDay
+			print 'Cache hit ' + wordOfTheDay
 			return wordData	
 
 
 if __name__ == '__main__':
 	bot = WordBot()
-	print "Running"
+	print 'Running'
 	bot.runner()
 	while 1:
 		pass
