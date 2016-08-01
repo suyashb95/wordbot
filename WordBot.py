@@ -63,7 +63,9 @@ class WordBot():
 	def handle_message(self, message):
 		if 'new_chat_participant' in message:
 			return
-		query = message['text']
+		query = message.get('text')
+		if not query:
+			return
 		if '@LexicoBot' in query:
 			query = query.replace('@LexicoBot', '')
 		reply = self.make_reply(query)
@@ -139,7 +141,7 @@ class WordBot():
 			synonymsText += synonym + '\n'
 		for antonym in antonyms[:3]:
 			antonymsText += antonym + '\n'
-		for index,example in enumerate(examples[:3]):
+		for index, example in enumerate(examples[:3]):
 			examplesText += str(index+1) + '. ' + example + '\n\n'
 		examplesText = examplesText[:-1]
 		dataDict['word'] = word
