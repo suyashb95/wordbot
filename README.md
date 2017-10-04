@@ -15,7 +15,7 @@ Usage
 
 * Inline mode is supported. 
 
-###Allowed commands
+### Allowed commands
 * /define [word] : Gets the word's meaning.
 * /synonyms [word] : Gets similar words.
 * /antonyms [word] : Gets opposites.
