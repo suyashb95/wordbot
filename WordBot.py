@@ -2,295 +2,116 @@ import requests, sys, json
 import httplib, urllib2, telebot
 from config import bot_token, start_message, wordnik_url, wordnik_api_key
 from datetime import datetime
-from cachetools import LFUCache
 from collections import Counter
 from telebot import types
+from time import sleep
+from DictionaryAPI import Dictionary
 
+wordbot = telebot.TeleBot(bot_token)
+dictionary = Dictionary()
 
-def patch_http_response_read(func):
-	def inner(*args):
-		try:
-			return func(*args)
-		except httplib.IncompleteRead, e:
-			return e.partial
+@wordbot.message_handler(commands = ['start', 'help'])
+def send_help_message(message):
+    wordbot.send_chat_action(message.chat.id, 'typing')
+    wordbot.send_message(message.chat.id, start_message, parse_mode='markdown')
 
-	return inner
-httplib.HTTPResponse.read = patch_http_response_read(httplib.HTTPResponse.read)
+@wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'ud'], content_types=['text'])
+def default_message_handler(message):
+    if message.new_chat_member or not message.text:
+        return
+    query = message.text.replace('@LexicoBot', '')
+    reply = make_reply(query)
+    if reply != '':
+        wordbot.send_chat_action(message.chat.id, 'typing')
+        wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
 
-class WordBot():
-	def __init__(self):
-		self.dictionaryCache = LFUCache(maxsize = 200)
-		self.urbandictionaryCache = LFUCache(maxsize = 200)
-		self.wordOfTheDayCache = {}
-		self.bot = telebot.TeleBot(bot_token)
-		self.session = requests.Session()
-		self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=5))
-		self.session.mount('https://', requests.adapters.HTTPAdapter(max_retries=5))
+@wordbot.message_handler(commands = ['today'], content_types = ['text'])
+def send_word_of_the_day(message):
+    wordData = dictionary.getWordOfTheDay()
+    if wordData is None:
+        return
+    query = '/define ' + wordData['word']
+    reply = make_reply(query)
+    wordbot.send_chat_action(message.chat.id, 'typing')
+    wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
 
-	def handle_inline(self, query):
-		try:
-			query_word = query.get('query')
-			default_word = self.getWordOfTheDay()
-			inline_answers = []
-			if default_word:
-				default_result = types.InlineQueryResultArticle(
-					'1', 
-					'Word of the day', 
-					types.InputTextMessageContent(
-						'*' + default_word['word'] + '*\n' + default_word['definitions'],
-						parse_mode='markdown'
-					),
-					description=default_word['word']
-				)
-				inline_answers = [default_result]
-			if query_word or query_word != '':
-				reply = self.make_reply('/define ' + query_word)
-				desc = reply if reply == 'Word not found.' else None
-				query_result = types.InlineQueryResultArticle('2', 
-					query_word, 
-					types.InputTextMessageContent(
-						reply,
-						parse_mode='markdown'
-					),
-					description=desc
-				)
-				inline_answers = [query_result]
-			self.bot.answer_inline_query(query.get('id'), inline_answers)
-		except Exception as e:
-			pass
-			#sprint(e)
+@wordbot.inline_handler(lambda query: True)
+def handle_inline_query(inline_query):
+    default_word = dictionary.getWordOfTheDay()
+    inline_answers = []
+    if default_word:
+        default_result = types.InlineQueryResultArticle(
+            '1', 
+            'Word of the day', 
+            types.InputTextMessageContent(
+                '*' + default_word['word'] + '*\n' + default_word['definitions'],
+                parse_mode='markdown'
+            ),
+            description=default_word['word']
+        )
+        inline_answers = [default_result]
+    query_word = inline_query.query
+    if query_word or query_word != '':
+        reply = make_reply('/define ' + query_word)
+        desc = reply if reply == 'Word not found.' else None
+        query_result = types.InlineQueryResultArticle('2', 
+            query_word, 
+            types.InputTextMessageContent(
+                reply,
+                parse_mode='markdown'
+            ),
+            description=desc
+        )
+        inline_answers = [query_result]
+    wordbot.answer_inline_query(inline_query.id, inline_answers)   
+       
+def make_reply(query):
+    reply_message = ''
+    query = query.split()
+    if len(query) > 1:
+        if query[0] in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
+            word = ' '.join(query[1::])
+            reply_message = '*' +  word + '*\n\n'
+            if query[0] != '/ud':
+                wordData = dictionary.dictionaryCache.get(word)
+                if wordData is None:
+                    wordData = dictionary.getWord(word)
+                if wordData is None:
+                    return 'Word not found.'
+                if query[0] in ['/define','/all']:
+                    reply_message += wordData['definitions'] + '\n'
+                if query[0] in ['/synonyms','/all']:
+                    reply_message += wordData['synonyms'] + '\n'
+                if query[0] in ['/antonyms','/all']:
+                    reply_message += wordData['antonyms'] + '\n'
+                if query[0] in ['/use','/all']:
+                    reply_message += wordData['examples'] + '\n'
+            else:
+                wordData = dictionary.urbandictionaryCache.get(word)
+                if wordData is None:
+                    wordData = dictionary.getUrbandictionaryWord(word)
+                if wordData is None:
+                    return 'Word not found'
+                reply_message += wordData['definition'] + '\n'
+                reply_message += wordData['example']    
+    return reply_message
 
-	def handle_message(self, message):
-		if 'new_chat_participant' in message:
-			return
-		query = message.get('text')
-		if not query:
-			return
-		if '@LexicoBot' in query:
-			query = query.replace('@LexicoBot', '')
-		reply = self.make_reply(query)
-		if reply != '':
-			self.bot.send_chat_action(message['chat']['id'], 'typing')
-			self.bot.send_message(message['chat']['id'], reply, parse_mode='markdown')
-	   
-	def make_reply(self, query):
-		if query in ['/start', '/help']:
-			return start_message		
-		reply_message = ''
-		if query == '/today':
-			wordData = self.getWordOfTheDay()
-			if wordData is None:
-				return 'Server error.'
-			query = '/define ' + wordData['word']
-		query = query.split()
-		if len(query) > 1:
-			if query[0] in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
-				word = ' '.join(query[1::])
-				reply_message = '*' +  word + '*\n'
-				if query[0] != '/ud':
-					wordData = self.dictionaryCache.get(word)
-					if wordData is None:
-						wordData = self.getWord(word)
-					else:
-						pass
-						#print 'Cache hit ' + word 
-					if wordData is None:
-						return 'Word not found.'
-					if query[0] in ['/define','/all']:
-						reply_message += wordData['definitions'] + '\n'
-					if query[0] in ['/synonyms','/all']:
-						reply_message += wordData['synonyms'] + '\n'
-					if query[0] in ['/antonyms','/all']:
-						reply_message += wordData['antonyms'] + '\n'
-					if query[0] in ['/use','/all']:
-						reply_message += wordData['examples'] + '\n'
-				else:
-					wordData = self.urbandictionaryCache.get(word)
-					if wordData is None:
-						wordData = self.getUrbandictionaryWord(word)
-					if wordData is None:
-						return 'Word not found'
-					reply_message += wordData['definition'] + '\n'
-					reply_message += wordData['example']	
-		return reply_message
-	
-	def updateCache(self, word, wordData):
-		dataDict = {}
-		definitionText = '*Definitions*' +'\n'
-		synonymsText = '*Synonyms*' + '\n'
-		antonymsText = '*Antonyms*' + '\n'
-		examplesText = '*Examples*' + '\n'
-		definitions = self.getDefinitions(wordData)
-		synonyms = self.getSynonyms(wordData)
-		antonyms = self.getAntonyms(wordData)
-		examples = self.getExamples(wordData)
-		if not definitions:
-			definitionText += 'No definitions found.\n'
-		if not synonyms:
-			synonymsText += 'No synonyms found.\n'
-		if not antonyms:
-			antonymsText += 'No antonyms found.\n'
-		if not examples:
-			examplesText += 'No examples found.\n'		
-		for definition in self.getDefinitions(wordData):
-			if definition[0]:
-				definitionText += definition[0] + ': '
-			definitionText += definition[1] + '\n\n'	
-		definitionText = definitionText[:-1]	
-		for synonym in synonyms[:3]:
-			synonymsText += synonym + '\n'
-		for antonym in antonyms[:3]:
-			antonymsText += antonym + '\n'
-		for index, example in enumerate(examples[:3]):
-			examplesText += str(index+1) + '. ' + example + '\n\n'
-		examplesText = examplesText[:-1]
-		dataDict['word'] = word
-		dataDict['definitions'] = definitionText
-		dataDict['synonyms'] = synonymsText
-		dataDict['antonyms'] = antonymsText
-		dataDict['examples'] = examplesText
-		self.dictionaryCache.update({word:dataDict})
-		return dataDict
-			
-	def getDefinitions(self, wordData):
-		partCounter = Counter()
-		definitions = []
-		for definition in wordData:
-			if 'partOfSpeech' in definition.keys() and partCounter[definition['partOfSpeech']] < 2:
-				definitions.append( 
-					('_' + definition['partOfSpeech'] + '_ ', 
-					definition['text'])
-				)
-				partCounter[definition['partOfSpeech']] += 1
-			else:
-				definitions.append(('',definition['text']))
-		return definitions
-
-	def getSynonyms(self, wordData):
-		synonyms = []
-		for relatedWords in wordData[0]['relatedWords']:
-			if relatedWords['relationshipType'] == 'synonym':
-				for synonym in relatedWords['words']:
-					synonyms.append(synonym)
-		
-		for relatedWords in wordData[0]['relatedWords']:
-			if relatedWords['relationshipType']	 == 'cross-reference':
-				for synonym in relatedWords['words']:
-					synonyms.append(synonym)	
-		return synonyms
-
-	def getAntonyms(self, wordData):
-		antonyms = []
-		for relatedWords in wordData[0]['relatedWords']:
-			if relatedWords['relationshipType']	 == 'antonym':
-				for antonym in relatedWords['words']:
-					antonyms.append(antonym)
-		return antonyms
-
-	def getExamples(self, wordData):
-		examples = []
-		for index,example in enumerate(wordData[0]['examples']):
-			examples.append(example['text'].replace('\n',''))
-		return examples
-		
-	def getEtymology(self, wordData):
-		etymologies = []
-		for etymology in wordData[0]['etymologies']:
-			etymologies.append(etymology)
-		return etymology
-
-	def getWord(self, word):
-		def_url = wordnik_url + word + '/definitions?limit=15&api_key=' + wordnik_api_key
-		example_url = wordnik_url + word + '/examples?api_key=' + wordnik_api_key
-		related_url = wordnik_url + word + '/relatedWords?api_key=' + wordnik_api_key
-		urls = [def_url, example_url, related_url]
-		data = []
-		for url in urls:
-			try:
-				response = self.session.get(url, verify=False)
-				if response.status_code != 200:
-					return None
-				data.append(json.loads(response.text.encode('utf-8')))
-			except ValueError:
-				return None
-		if not data[0]:
-			return None
-		wordData = data[0]
-		try:
-			wordData[0]['examples'] = data[1]['examples']
-		except KeyError:
-			wordData[0]['examples'] = []
-		try:
-			wordData[0]['relatedWords'] = data[2]
-		except KeyError:
-			wordData[0]['relatedWords'] = []
-		return self.updateCache(word,wordData)
-	
-	def getUrbandictionaryWord(self, word):
-		api_url = 'http://api.urbandictionary.com/v0/define?term='
-		#response = requests.get(api_url+word, verify=False)
-		response = urllib2.urlopen(api_url + word)
-		data = json.loads(response.read().decode('utf-8'))
-		if data['result_type'] == 'no_results' or not data['list']:
-			return None
-		wordData = {}
-		wordData['definition'] = '*Definition*' + '\n'
-		wordData['example'] = '*Example*'  + '\n'
-		try:
-			if data['list'][0]['definition']:
-				wordData['definition'] += data['list'][0]['definition'].strip() + '\n'
-			else:
-				return None
-		except KeyError:
-			return None
-		try:
-			if data['list'][0]['example']:
-				wordData['example'] += data['list'][0]['example'].strip() + '\n'
-			else:
-				wordData['example'] += 'No example found.'
-		except KeyError:
-			wordData['example'] += 'No example found.'			
-		self.urbandictionaryCache.update({word:wordData})
-		return wordData
-	
-	def getWordOfTheDay(self):
-		wordOfTheDay = self.wordOfTheDayCache.get(datetime.now().day, None)
-		if wordOfTheDay is None:
-			today = datetime.strftime(datetime.now(), '%Y-%m-%d')
-			url = wordnik_url[:-10] + 'words.json/wordOfTheDay?api_key=' + wordnik_api_key + '&date=' + today
-			data = []
-			response = self.session.get(url, verify=False)
-			try:
-				data.append(json.loads(response.text.encode('utf-8')))
-			except ValueError:
-				return None
-			wordOfTheDay = data[0]['word']
-			self.wordOfTheDayCache.clear()
-			self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay
-		else:
-			pass
-			#print 'Today Cache Hit ' + wordOfTheDay
-		wordData = self.dictionaryCache.get(wordOfTheDay)
-		if not wordData:
-			url = wordnik_url + wordOfTheDay + '/relatedWords?api_key=' + wordnik_api_key
-			wordData = [definition for definition in data[0]['definitions']]
-			for definition in wordData:
-				definition['attributionText'] = ''
-			wordData[0]['examples'] = data[0]['examples']
-			response = self.session.get(url, verify = False)
-			relatedWords = json.loads(response.text)
-			wordData[0]['relatedWords'] = relatedWords
-			wordData[0]['word'] = wordOfTheDay
-			return self.updateCache(wordOfTheDay, wordData)	
-		else:
-			#print 'Cache hit ' + wordOfTheDay
-			return wordData	
-
+def runner(self):
+    updates = wordbot.get_updates()
+    latest_update = min([update.update_id for update in updates])
+    while True:
+        try:
+            for update in updates:
+                if update.message.text:
+                    wordbot.handle_message(update.message)
+                if update.update_id > latest_update:
+                    latest_update = update.update_id
+            sleep(.20)
+            updates = wordbot.get_updates(offset=latest_update+1)
+        except:
+            sys.exit(0)
 
 if __name__ == '__main__':
-	bot = WordBot()
-	print 'Running'
-	bot.runner()
-	while 1:
-		pass
-
+    bot = wordbot()
+    print 'Running'
+    bot.runner()
