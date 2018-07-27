@@ -144,7 +144,7 @@ class Dictionary(object):
         #response = requests.get(api_url+word, verify=False)
         response = urllib2.urlopen(api_url + word)
         data = json.loads(response.read().decode('utf-8'))
-        if data['result_type'] == 'no_results' or not data['list']:
+        if data.get('result_type', None) == 'no_results' or not data['list']:
             return None
         wordData = {}
         wordData['definition'] = '*Definition*' + '\n'

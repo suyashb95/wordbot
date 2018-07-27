@@ -15,7 +15,7 @@ def send_help_message(message):
     wordbot.send_chat_action(message.chat.id, 'typing')
     wordbot.send_message(message.chat.id, start_message, parse_mode='markdown')
 
-@wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'ud'], content_types=['text'])
+@wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'ud', 'use'], content_types=['text'])
 def default_message_handler(message):
     if message.new_chat_member or not message.text:
         return
@@ -32,8 +32,9 @@ def send_word_of_the_day(message):
         return
     query = '/define ' + wordData['word']
     reply = make_reply(query)
-    wordbot.send_chat_action(message.chat.id, 'typing')
-    wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
+    if reply != '':
+        wordbot.send_chat_action(message.chat.id, 'typing')
+        wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
 
 @wordbot.inline_handler(lambda query: True)
 def handle_inline_query(inline_query):
@@ -84,7 +85,7 @@ def make_reply(query):
                     reply_message += wordData['synonyms'] + '\n'
                 if query[0] in ['/antonyms','/all']:
                     reply_message += wordData['antonyms'] + '\n'
-                if query[0] in ['/use','/all']:
+                if query[0] in ['/use']:
                     reply_message += wordData['examples'] + '\n'
             else:
                 wordData = dictionary.urbandictionaryCache.get(word)
@@ -112,6 +113,4 @@ def runner(self):
             sys.exit(0)
 
 if __name__ == '__main__':
-    bot = wordbot()
-    print 'Running'
-    bot.runner()
+    wordbot.polling()

@@ -60,11 +60,7 @@ main.py
 *.yaml
 *.ico
 LICENSE
-multipart.py
 appengine_config.py
 *.pyc
 lib/
-main-2.py
-main-old.py
-WordBotNew.py
 *.txt

@@ -25,7 +25,6 @@ Usage
 * /today: Gets the word of the day.
 * /ud [word/phrase]: Gets the topmost entry from Urbandictionary.
 
- 
 Screenshots
 ===============
 
@@ -39,6 +38,3 @@ Requirements
 * requests==2.7.0
 * pyTelegramBotAPI==2.1.5
 * cachetools==1.1.6
-
-
-
