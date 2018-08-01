@@ -56,7 +56,6 @@ docs/_build/
 # PyBuilder
 target/
 config.py
-main.py
 *.yaml
 *.ico
 LICENSE

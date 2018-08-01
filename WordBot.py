@@ -107,7 +107,7 @@ def runner(self):
                     wordbot.handle_message(update.message)
                 if update.update_id > latest_update:
                     latest_update = update.update_id
-            sleep(.20)
+            sleep(.05)
             updates = wordbot.get_updates(offset=latest_update+1)
         except:
             sys.exit(0)
