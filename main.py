@@ -74,13 +74,14 @@ class WebhookHandler(webapp2.RequestHandler):
                 return
             if 'chosen_inline_result' in body:
                 return
-            if 'text' not in body.get('message'):
-            	return
+            message = body.get('message', '')
+            logging.info(message)
+            if message is None or 'text' not in message or 'reply_to_message' in message: 
+                return 
         try:
         	wordbot.process_new_updates([telebot.types.Update.de_json(json.dumps(body))])
         except:
         	pass
-        
             
 app = webapp2.WSGIApplication([
     ('/me', MeHandler),

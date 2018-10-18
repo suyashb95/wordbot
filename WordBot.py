@@ -1,19 +1,29 @@
 import requests, sys, json
-import httplib, urllib2, telebot
-from config import bot_token, start_message, wordnik_url, wordnik_api_key
+import telebot
+from config import bot_token, start_message, wordnik_api, wordnik_api_key
 from datetime import datetime
 from collections import Counter
 from telebot import types
 from time import sleep
 from DictionaryAPI import Dictionary
+from utils import *
+import logging 
 
 wordbot = telebot.TeleBot(bot_token)
 dictionary = Dictionary()
 
+def send_reply(message, text):
+    if text != '':
+        try:
+            wordbot.send_chat_action(message.chat.id, 'typing')
+            wordbot.send_message(message.chat.id, text, parse_mode='markdown')
+        except Exception as e:
+            logging.info(e)
+            logging.info(message)
+
 @wordbot.message_handler(commands = ['start', 'help'])
 def send_help_message(message):
-    wordbot.send_chat_action(message.chat.id, 'typing')
-    wordbot.send_message(message.chat.id, start_message, parse_mode='markdown')
+    send_reply(message, start_message)
 
 @wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'ud', 'use'], content_types=['text'])
 def default_message_handler(message):
@@ -21,20 +31,14 @@ def default_message_handler(message):
         return
     query = message.text.replace('@LexicoBot', '')
     reply = make_reply(query)
-    if reply != '':
-        wordbot.send_chat_action(message.chat.id, 'typing')
-        wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
+    send_reply(message, reply)
 
 @wordbot.message_handler(commands = ['today'], content_types = ['text'])
 def send_word_of_the_day(message):
-    wordData = dictionary.getWordOfTheDay()
-    if wordData is None:
-        return
-    query = '/define ' + wordData['word']
+    word_data = dictionary.getWordOfTheDay()
+    query = '/define ' + word_data['word']
     reply = make_reply(query)
-    if reply != '':
-        wordbot.send_chat_action(message.chat.id, 'typing')
-        wordbot.send_message(message.chat.id, reply, parse_mode='markdown')
+    send_reply(message, reply)
 
 @wordbot.inline_handler(lambda query: True)
 def handle_inline_query(inline_query):
@@ -45,7 +49,7 @@ def handle_inline_query(inline_query):
             '1', 
             'Word of the day', 
             types.InputTextMessageContent(
-                '*' + default_word['word'] + '*\n' + default_word['definitions'],
+                '{}\n\n{}'.format(bold(default_word['word']), format_definitions(default_word)),
                 parse_mode='markdown'
             ),
             description=default_word['word']
@@ -57,14 +61,15 @@ def handle_inline_query(inline_query):
         desc = reply if reply == 'Word not found.' else None
         query_result = types.InlineQueryResultArticle('2', 
             query_word, 
-            types.InputTextMessageContent(
-                reply,
-                parse_mode='markdown'
-            ),
+            types.InputTextMessageContent(reply,parse_mode='markdown'),
             description=desc
         )
         inline_answers = [query_result]
-    wordbot.answer_inline_query(inline_query.id, inline_answers)   
+    try:
+        wordbot.answer_inline_query(inline_query.id, inline_answers)   
+    except Exception as e:
+        logging.info(e)
+        logging.info(inline_query)
        
 def make_reply(query):
     reply_message = ''
@@ -72,45 +77,23 @@ def make_reply(query):
     if len(query) > 1:
         if query[0] in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
             word = ' '.join(query[1::])
-            reply_message = '*' +  word + '*\n\n'
+            reply_message = '{}\n\n'.format(bold(word))
             if query[0] != '/ud':
-                wordData = dictionary.dictionaryCache.get(word)
-                if wordData is None:
-                    wordData = dictionary.getWord(word)
-                if wordData is None:
-                    return 'Word not found.'
+                word_data = dictionary.getWord(word)
+                if word_data is None: return 'Word not found'
                 if query[0] in ['/define','/all']:
-                    reply_message += wordData['definitions'] + '\n'
+                    reply_message += format_definitions(word_data)
                 if query[0] in ['/synonyms','/all']:
-                    reply_message += wordData['synonyms'] + '\n'
-                if query[0] in ['/antonyms','/all']:
-                    reply_message += wordData['antonyms'] + '\n'
-                if query[0] in ['/use']:
-                    reply_message += wordData['examples'] + '\n'
+                    reply_message += format_synonyms(word_data) + '\n'
+                if query[0] in ['/antonyms','/all']:                
+                    reply_message += format_antonyms(word_data) + '\n'
+                if query[0] in ['/use']:                    
+                    reply_message += format_example(word_data)
             else:
-                wordData = dictionary.urbandictionaryCache.get(word)
-                if wordData is None:
-                    wordData = dictionary.getUrbandictionaryWord(word)
-                if wordData is None:
-                    return 'Word not found'
-                reply_message += wordData['definition'] + '\n'
-                reply_message += wordData['example']    
+                word_data = dictionary.getUrbandictionaryWord(word)
+                if word_data is None: return 'Word not found'
+                reply_message += format_urbandictionary(word_data)    
     return reply_message
-
-def runner(self):
-    updates = wordbot.get_updates()
-    latest_update = min([update.update_id for update in updates])
-    while True:
-        try:
-            for update in updates:
-                if update.message.text:
-                    wordbot.handle_message(update.message)
-                if update.update_id > latest_update:
-                    latest_update = update.update_id
-            sleep(.05)
-            updates = wordbot.get_updates(offset=latest_update+1)
-        except:
-            sys.exit(0)
 
 if __name__ == '__main__':
     wordbot.polling()
