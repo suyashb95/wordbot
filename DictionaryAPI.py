@@ -1,10 +1,14 @@
-import requests, sys, json
+import requests
+import sys
+import json
 import telebot
-from config import bot_token, start_message, wordnik_api, wordnik_api_key, urbandictionary_api
+
+from config import *
 from datetime import datetime
 from cachetools import LFUCache
 from collections import Counter
 from wordnik import swagger, WordApi, WordsApi
+
 
 class Dictionary(object):
     def __init__(self):
@@ -18,18 +22,19 @@ class Dictionary(object):
         self.session.mount('http://', requests.adapters.HTTPAdapter(max_retries=5))
         self.session.mount('https://', requests.adapters.HTTPAdapter(max_retries=5))
 
-    def partOfSpeechFilter(self, counter, pos):
+    def part_of_speech_filter(self, counter, pos):
         counter[pos] += 1
         return counter[pos] <= 2
     
-    def getWord(self, word):
+    def get_word(self, word):
         if word in self.dictionaryCache: return self.dictionaryCache[word]
         definitions = self.word_api.getDefinitions(word, limit=20, useCanonical=True)
         if not definitions: return None
         counter = Counter()
-        definitions = list(filter(lambda d: self.partOfSpeechFilter(counter, d.partOfSpeech), definitions))
+        definitions = list(filter(lambda d: self.part_of_speech_filter(counter, d.partOfSpeech), definitions))
         examples = self.word_api.getExamples(word, limit=5, useCanonical=True)
         relatedWords = self.word_api.getRelatedWords(word, limitPerRelationshipType=5, useCanonical=True)
+        if not relatedWords: relatedWords = []
         synonyms = list(filter(lambda x: x.relationshipType == 'synonym', relatedWords))
         antonyms = list(filter(lambda x: x.relationshipType == 'antonym', relatedWords))
         word_dict = {
@@ -42,10 +47,10 @@ class Dictionary(object):
         self.dictionaryCache.update({word: word_dict})
         return word_dict
 
-    def getWordOfTheDay(self):
+    def get_word_of_the_day(self):
         wordOfTheDay = self.wordOfTheDayCache.get(datetime.now().day, None)
         if wordOfTheDay and wordOfTheDay in self.dictionaryCache: return self.dictionaryCache[wordOfTheDay]
-        wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
+        wordOfTheDay = self.wordoftheday_api.get_word_of_the_day()
         relatedWords = self.word_api.getRelatedWords(wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True)
         synonyms = list(filter(lambda x: x.relationshipType == 'synonym', relatedWords))
         antonyms = list(filter(lambda x: x.relationshipType == 'antonym', relatedWords))
@@ -61,7 +66,7 @@ class Dictionary(object):
         self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay.word
         return word_dict
         
-    def getUrbandictionaryWord(self, word):
+    def get_urbandictionary_word(self, word):
         if word in self.urbandictionaryCache: return self.urbandictionaryCache[word]        
         url = '{}/define'.format(self.urbandictionary_api)
         url_params = {

@@ -1,5 +1,9 @@
-import requests, sys, json
+import requests
+import sys
+import json
 import telebot
+import logging
+
 from config import bot_token, start_message, wordnik_api, wordnik_api_key
 from datetime import datetime
 from collections import Counter
@@ -7,10 +11,10 @@ from telebot import types
 from time import sleep
 from DictionaryAPI import Dictionary
 from utils import *
-import logging 
 
 wordbot = telebot.TeleBot(bot_token)
 dictionary = Dictionary()
+
 
 def send_reply(message, text):
     if text != '':
