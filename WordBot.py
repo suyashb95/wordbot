@@ -39,7 +39,7 @@ def default_message_handler(message):
 
 @wordbot.message_handler(commands = ['today'], content_types = ['text'])
 def send_word_of_the_day(message):
-    word_data = dictionary.getWordOfTheDay()
+    word_data = dictionary.get_word_of_the_day()
     query = '/define ' + word_data['word']
     reply = make_reply(query)
     send_reply(message, reply)
@@ -50,8 +50,8 @@ def handle_inline_query(inline_query):
     inline_answers = []
     if default_word:
         default_result = types.InlineQueryResultArticle(
-            '1', 
-            'Word of the day', 
+            '1',
+            'Word of the day',
             types.InputTextMessageContent(
                 '{}\n\n{}'.format(bold(default_word['word']), format_definitions(default_word)),
                 parse_mode='markdown'
@@ -63,18 +63,18 @@ def handle_inline_query(inline_query):
     if query_word or query_word != '':
         reply = make_reply('/define ' + query_word)
         desc = reply if reply == 'Word not found.' else None
-        query_result = types.InlineQueryResultArticle('2', 
-            query_word, 
+        query_result = types.InlineQueryResultArticle('2',
+            query_word,
             types.InputTextMessageContent(reply,parse_mode='markdown'),
             description=desc
         )
         inline_answers = [query_result]
     try:
-        wordbot.answer_inline_query(inline_query.id, inline_answers)   
+        wordbot.answer_inline_query(inline_query.id, inline_answers)
     except Exception as e:
         logging.info(e)
         logging.info(inline_query)
-       
+
 def make_reply(query):
     reply_message = ''
     query = query.split()
@@ -83,20 +83,20 @@ def make_reply(query):
             word = ' '.join(query[1::])
             reply_message = '{}\n\n'.format(bold(word))
             if query[0] != '/ud':
-                word_data = dictionary.getWord(word)
+                word_data = dictionary.get_word(word)
                 if word_data is None: return 'Word not found'
                 if query[0] in ['/define','/all']:
                     reply_message += format_definitions(word_data)
                 if query[0] in ['/synonyms','/all']:
                     reply_message += format_synonyms(word_data) + '\n'
-                if query[0] in ['/antonyms','/all']:                
+                if query[0] in ['/antonyms','/all']:
                     reply_message += format_antonyms(word_data) + '\n'
-                if query[0] in ['/use']:                    
+                if query[0] in ['/use']:
                     reply_message += format_example(word_data)
             else:
                 word_data = dictionary.getUrbandictionaryWord(word)
                 if word_data is None: return 'Word not found'
-                reply_message += format_urbandictionary(word_data)    
+                reply_message += format_urbandictionary(word_data)
     return reply_message
 
 if __name__ == '__main__':

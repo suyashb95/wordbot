@@ -25,7 +25,7 @@ class Dictionary(object):
     def part_of_speech_filter(self, counter, pos):
         counter[pos] += 1
         return counter[pos] <= 2
-    
+
     def get_word(self, word):
         if word in self.dictionaryCache: return self.dictionaryCache[word]
         definitions = self.word_api.getDefinitions(word, limit=20, useCanonical=True)
@@ -50,7 +50,7 @@ class Dictionary(object):
     def get_word_of_the_day(self):
         wordOfTheDay = self.wordOfTheDayCache.get(datetime.now().day, None)
         if wordOfTheDay and wordOfTheDay in self.dictionaryCache: return self.dictionaryCache[wordOfTheDay]
-        wordOfTheDay = self.wordoftheday_api.get_word_of_the_day()
+        wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
         relatedWords = self.word_api.getRelatedWords(wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True)
         synonyms = list(filter(lambda x: x.relationshipType == 'synonym', relatedWords))
         antonyms = list(filter(lambda x: x.relationshipType == 'antonym', relatedWords))
@@ -65,9 +65,9 @@ class Dictionary(object):
         self.wordOfTheDayCache.clear()
         self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay.word
         return word_dict
-        
+
     def get_urbandictionary_word(self, word):
-        if word in self.urbandictionaryCache: return self.urbandictionaryCache[word]        
+        if word in self.urbandictionaryCache: return self.urbandictionaryCache[word]
         url = '{}/define'.format(self.urbandictionary_api)
         url_params = {
             'term': word
