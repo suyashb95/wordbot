@@ -94,7 +94,7 @@ def make_reply(query):
                 if query[0] in ['/use']:
                     reply_message += format_example(word_data)
             else:
-                word_data = dictionary.getUrbandictionaryWord(word)
+                word_data = dictionary.get_urbandictionary_word(word)
                 if word_data is None: return 'Word not found'
                 reply_message += format_urbandictionary(word_data)
     return reply_message
