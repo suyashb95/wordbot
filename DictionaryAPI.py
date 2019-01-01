@@ -35,8 +35,8 @@ class Dictionary(object):
         examples = self.word_api.getExamples(word, limit=5, useCanonical=True)
         relatedWords = self.word_api.getRelatedWords(word, limitPerRelationshipType=5, useCanonical=True)
         if not relatedWords: relatedWords = []
-        synonyms = list(filter(lambda x: x.relationshipType == 'synonym', relatedWords))
-        antonyms = list(filter(lambda x: x.relationshipType == 'antonym', relatedWords))
+        synonyms = [x for x in relatedWords if x.relationshipType == 'synonym']
+        antonyms = [x for x in relatedWords if x.relationshipType == 'antonym']
         word_dict = {
             'word': word,
             'definitions': definitions,
@@ -52,8 +52,8 @@ class Dictionary(object):
         if wordOfTheDay and wordOfTheDay in self.dictionaryCache: return self.dictionaryCache[wordOfTheDay]
         wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
         relatedWords = self.word_api.getRelatedWords(wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True)
-        synonyms = list(filter(lambda x: x.relationshipType == 'synonym', relatedWords))
-        antonyms = list(filter(lambda x: x.relationshipType == 'antonym', relatedWords))
+        synonyms = [x for x in relatedWords if x.relationshipType == 'synonym'] if relatedWords else []
+        antonyms = [x for x in relatedWords if x.relationshipType == 'antonym'] if relatedWords else []
         word_dict = {
             'word': wordOfTheDay.word,
             'definitions': wordOfTheDay.definitions,
@@ -61,7 +61,7 @@ class Dictionary(object):
             'synonyms': synonyms,
             'antonyms': antonyms
         }
-        self.dictionaryCache.update({wordOfTheDay: word_dict})
+        self.dictionaryCache.update({wordOfTheDay.word: word_dict})
         self.wordOfTheDayCache.clear()
         self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay.word
         return word_dict

@@ -22,8 +22,8 @@ def send_reply(message, text):
             wordbot.send_chat_action(message.chat.id, 'typing')
             wordbot.send_message(message.chat.id, text, parse_mode='markdown')
         except Exception as e:
-            logging.info(e)
-            logging.info(message)
+            logging.error(e)
+            logging.error(message)
 
 @wordbot.message_handler(commands = ['start', 'help'])
 def send_help_message(message):
@@ -46,7 +46,7 @@ def send_word_of_the_day(message):
 
 @wordbot.inline_handler(lambda query: True)
 def handle_inline_query(inline_query):
-    default_word = dictionary.getWordOfTheDay()
+    default_word = dictionary.get_word_of_the_day()
     inline_answers = []
     if default_word:
         default_result = types.InlineQueryResultArticle(
@@ -72,8 +72,8 @@ def handle_inline_query(inline_query):
     try:
         wordbot.answer_inline_query(inline_query.id, inline_answers)
     except Exception as e:
-        logging.info(e)
-        logging.info(inline_query)
+        logging.error(e)
+        logging.error(inline_query)
 
 def make_reply(query):
     reply_message = ''
