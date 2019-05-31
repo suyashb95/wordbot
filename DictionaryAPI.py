@@ -26,12 +26,15 @@ class Dictionary(object):
         counter[pos] += 1
         return counter[pos] <= 2
 
+    def is_valid_definition(self, definition):
+        return definition.partOfSpeech and definition.text
+
     def get_word(self, word):
         if word in self.dictionaryCache: return self.dictionaryCache[word]
         definitions = self.word_api.getDefinitions(word, limit=20, useCanonical=True)
         if not definitions: return None
         counter = Counter()
-        definitions = list(filter(lambda d: self.part_of_speech_filter(counter, d.partOfSpeech), definitions))
+        definitions = list(filter(lambda d: self.part_of_speech_filter(counter, d.partOfSpeech) and self.is_valid_definition(d), definitions))
         examples = self.word_api.getExamples(word, limit=5, useCanonical=True)
         relatedWords = self.word_api.getRelatedWords(word, limitPerRelationshipType=5, useCanonical=True)
         if not relatedWords: relatedWords = []
@@ -51,7 +54,10 @@ class Dictionary(object):
         wordOfTheDay = self.wordOfTheDayCache.get(datetime.now().day, None)
         if wordOfTheDay and wordOfTheDay in self.dictionaryCache: return self.dictionaryCache[wordOfTheDay]
         wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
-        relatedWords = self.word_api.getRelatedWords(wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True)
+        try:
+            relatedWords = self.word_api.getRelatedWords(wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True)
+        except Exception:
+            relatedWords = []
         synonyms = [x for x in relatedWords if x.relationshipType == 'synonym'] if relatedWords else []
         antonyms = [x for x in relatedWords if x.relationshipType == 'antonym'] if relatedWords else []
         word_dict = {

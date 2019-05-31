@@ -12,7 +12,7 @@ def format_definitions(word_data):
     return message
 
 def format_example(word_data):
-    if not word_data['example']: return 'No example found'  
+    if not word_data['example']: return 'No example found'
     message = '{}\n'.format(bold('Example'))
     message += '{}\n\n'.format(word_data['example'].text.encode('utf-8'))
     return message

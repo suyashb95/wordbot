@@ -11,11 +11,10 @@ from google.appengine.ext import ndb
 import webapp2
 from WordBot import wordbot
 from config import start_message, bot_token
-import telebot 
+import telebot
 
 TOKEN = bot_token
 BASE_URL = 'https://api.telegram.org/bot' + TOKEN + '/'
-
 
 # ================================
 
@@ -76,13 +75,13 @@ class WebhookHandler(webapp2.RequestHandler):
                 return
             message = body.get('message', '')
             logging.info(message)
-            if message is None or 'text' not in message or 'reply_to_message' in message: 
-                return 
+            if message is None or 'text' not in message or 'reply_to_message' in message:
+                return
         try:
         	wordbot.process_new_updates([telebot.types.Update.de_json(json.dumps(body))])
         except:
         	pass
-            
+
 app = webapp2.WSGIApplication([
     ('/me', MeHandler),
     ('/updates', GetUpdatesHandler),
