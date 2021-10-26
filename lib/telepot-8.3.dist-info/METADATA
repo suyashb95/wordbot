@@ -1,0 +1,26 @@
+Metadata-Version: 2.0
+Name: telepot
+Version: 8.3
+Summary: Python framework for Telegram Bot API
+Home-page: https://github.com/nickoala/telepot
+Author: Nick Lee
+Author-email: lee1nick@yahoo.ca
+License: MIT
+Keywords: telegram bot api python wrapper
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Communications :: Chat
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Requires-Dist: urllib3 (==1.9.1)
+
+UNKNOWN
+
+

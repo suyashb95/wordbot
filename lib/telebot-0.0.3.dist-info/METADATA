@@ -1,0 +1,55 @@
+Metadata-Version: 2.0
+Name: telebot
+Version: 0.0.3
+Summary: A Telegram bot library, with simple route decorators.
+Home-page: https://github.com/KyleJamesWalker/telebot
+Author: Kyle James Walker
+Author-email: KyleJamesWalker@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 2 - Pre-Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.5
+Requires-Dist: requests (==2.7.0)
+
+telebot
+-------
+
+A Telegram bot library, with simple route decorators.
+
+Currently a work in progress, doesn't do much now, but will register and send messages.
+
+Example Setup
+^^^^^^^^^^^^^
+::
+
+ from telebot import TeleBot
+
+ app = TeleBot(__name__)
+
+
+ @app.route('/command ?(.*)')
+ def example_command(message, cmd):
+     chat_dest = message['chat']['id']
+     msg = "Command Recieved: {}".format(cmd)
+
+     app.send_message(chat_dest, msg)
+
+
+ @app.route('(?!/).+')
+ def parrot(message):
+    chat_dest = message['chat']['id']
+    user_msg = message['text']
+
+    msg = "Parrot Says: {}".format(user_msg)
+    app.send_message(chat_dest, msg)
+
+
+ if __name__ == '__main__':
+     app.config['api_key'] = 'xxxxxxxx:enterYourBotKeyHereToTest'
+     app.poll(debug=True)
+
+
