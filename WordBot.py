@@ -1,14 +1,8 @@
-import requests
-import sys
-import json
 import telebot
 import logging
 
-from config import bot_token, start_message, wordnik_api, wordnik_api_key
-from datetime import datetime
-from collections import Counter
+from config import bot_token, start_message
 from telebot import types
-from time import sleep
 from DictionaryAPI import Dictionary
 from utils import *
 
@@ -29,11 +23,11 @@ def send_reply(message, text):
 def send_help_message(message):
     send_reply(message, start_message)
 
-@wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'ud', 'use'], content_types=['text'])
+@wordbot.message_handler(commands = ['define', 'all', 'synonyms', 'antonyms', 'use'], content_types=['text'])
 def default_message_handler(message):
     if message.new_chat_member or not message.text:
         return
-    query = message.text.replace('@LexicoBot', '')
+    query = message.text.replace('@anotherwordbot', '')
     reply = make_reply(query)
     send_reply(message, reply)
 
@@ -79,24 +73,19 @@ def make_reply(query):
     reply_message = ''
     query = query.split()
     if len(query) > 1:
-        if query[0] in ['/define', '/synonyms', '/antonyms', '/use', '/all', '/ud']:
+        if query[0] in ['/define', '/synonyms', '/antonyms', '/use', '/all']:
             word = ' '.join(query[1::])
             reply_message = '{}\n\n'.format(bold(word))
-            if query[0] != '/ud':
-                word_data = dictionary.get_word(word)
-                if word_data is None: return 'Word not found'
-                if query[0] in ['/define','/all']:
-                    reply_message += format_definitions(word_data)
-                if query[0] in ['/synonyms','/all']:
-                    reply_message += format_synonyms(word_data) + '\n'
-                if query[0] in ['/antonyms','/all']:
-                    reply_message += format_antonyms(word_data) + '\n'
-                if query[0] in ['/use']:
-                    reply_message += format_example(word_data)
-            else:
-                word_data = dictionary.get_urbandictionary_word(word)
-                if word_data is None: return 'Word not found'
-                reply_message += format_urbandictionary(word_data)
+            word_data = dictionary.get_word(word)
+            if word_data is None: return 'Word not found'
+            if query[0] in ['/define','/all']:
+                reply_message += format_definitions(word_data)
+            if query[0] in ['/synonyms','/all']:
+                reply_message += format_synonyms(word_data) + '\n'
+            if query[0] in ['/antonyms','/all']:
+                reply_message += format_antonyms(word_data) + '\n'
+            if query[0] in ['/use']:
+                reply_message += format_example(word_data)
     return reply_message
 
 if __name__ == '__main__':

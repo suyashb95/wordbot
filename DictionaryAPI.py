@@ -1,7 +1,4 @@
 import requests
-import sys
-import json
-import telebot
 
 from config import *
 from datetime import datetime
@@ -14,7 +11,6 @@ class Dictionary(object):
     def __init__(self):
         self.word_api = WordApi.WordApi(swagger.ApiClient(wordnik_api_key, wordnik_api))
         self.wordoftheday_api = WordsApi.WordsApi(swagger.ApiClient(wordnik_api_key, wordnik_api))
-        self.urbandictionary_api = urbandictionary_api
         self.dictionaryCache = LFUCache(maxsize = 1000)
         self.urbandictionaryCache = LFUCache(maxsize = 1000)
         self.wordOfTheDayCache = {}
@@ -70,21 +66,4 @@ class Dictionary(object):
         self.dictionaryCache.update({wordOfTheDay.word: word_dict})
         self.wordOfTheDayCache.clear()
         self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay.word
-        return word_dict
-
-    def get_urbandictionary_word(self, word):
-        if word in self.urbandictionaryCache: return self.urbandictionaryCache[word]
-        url = '{}/define'.format(self.urbandictionary_api)
-        url_params = {
-            'term': word
-        }
-        res = self.session.get(url, params=url_params)
-        json_res = json.loads(res.text)
-        if not json_res['list']: return None
-        word_dict = {
-            'word': word,
-            'definition': json_res['list'][0]['definition'],
-            'example': json_res['list'][0]['example']
-        }
-        self.urbandictionaryCache.update({word: word_dict})
         return word_dict

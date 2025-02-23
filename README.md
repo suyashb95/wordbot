@@ -2,7 +2,7 @@ Telegram English Dictionary Bot
 ===============================
 
 This is a Telegram bot which fetches word definitions, synonyms, antonyms, usage examples and the word of the day from the Internet.
-It uses Wordnik's and Urbandictionary's API to fetch data. 
+It uses Wordnik's API to fetch data. 
 
 ![alt tag](http://i.imgur.com/Jhvxues.png)
 
@@ -23,7 +23,6 @@ Usage
 * /all [word] : Gets all of the above.
 * /help : Send this message again.
 * /today: Gets the word of the day.
-* /ud [word/phrase]: Gets the topmost entry from Urbandictionary.
 
 Screenshots
 ===============
@@ -33,8 +32,8 @@ Screenshots
 Requirements
 ------------
 
-* Wordnik API
-* tornado==4.2.1
-* requests==2.7.0
-* pyTelegramBotAPI==2.1.5
-* cachetools==1.1.6
+* tornado==6.3.3
+* requests==2.31.0
+* pyTelegramBotAPI==4.23.0
+* cachetools==5.5.2
+* aws_lambda_powertools==3.6.0
