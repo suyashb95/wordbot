@@ -4,14 +4,13 @@ Telegram English Dictionary Bot
 This is a Telegram bot which fetches word definitions, synonyms, antonyms, usage examples and the word of the day from the Internet.
 It uses Wordnik's API to fetch data. 
 
-![alt tag](http://i.imgur.com/Jhvxues.png)
 
 Usage
 =====
 
-* Visit this URL : https://telegram.me/LexicoBot 
+* Visit this URL : https://telegram.me/anotherwordbot 
 
-* Or send a message to this username: @LexicoBot
+* Or send a message to this username: @anotherwordbot
 
 * Inline mode is supported. 
 

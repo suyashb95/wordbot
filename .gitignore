@@ -55,7 +55,6 @@ docs/_build/
 # PyBuilder
 target/
 config.py
-*.yaml
 *.ico
 LICENSE
 appengine_config.py
