@@ -16,14 +16,16 @@ Resources:
     Properties:
       CodeUri: .
       Handler: app.lambda_handler
-      Runtime: python3.13
+      Runtime: python3.12
       Architectures:
         - x86_64
+      FunctionUrlConfig:
+        AuthType: NONE
       Events:
         HelloWorld:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /wordbot
+            Path: /message
             Method: post
 
 Outputs:
@@ -33,9 +35,3 @@ Outputs:
   WordBotApi:
     Description: "API Gateway endpoint URL for Prod stage for word bot"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/wordbot/"
-  WordBotFunction:
-    Description: "Wordbot webook"
-    Value: !GetAtt WordBotFunction.Arn
-  WordBotFunctionIamRole:
-    Description: "Implicit IAM Role created for word bot"
-    Value: !GetAtt WordBotFunction.Arn

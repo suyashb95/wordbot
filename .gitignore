@@ -60,3 +60,4 @@ LICENSE
 appengine_config.py
 *.pyc
 *.txt
+.aws-sam
