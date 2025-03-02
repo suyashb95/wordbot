@@ -72,11 +72,7 @@ def handle_inline_query(inline_query):
             description=desc,
         )
         inline_answers = [query_result]
-    try:
-        wordbot.answer_inline_query(inline_query.id, inline_answers)
-    except Exception as e:
-        logging.error(e)
-        logging.error(inline_query)
+    wordbot.answer_inline_query(inline_query.id, inline_answers)
 
 
 def make_reply(query):

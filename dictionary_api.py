@@ -14,7 +14,6 @@ class Dictionary(object):
             swagger.ApiClient(wordnik_api_key, wordnik_api)
         )
         self.dictionaryCache = LFUCache(maxsize=1000)
-        self.urbandictionaryCache = LFUCache(maxsize=1000)
         self.wordOfTheDayCache = {}
         self.session = requests.Session()
         self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=5))
@@ -60,7 +59,7 @@ class Dictionary(object):
         return word_dict
 
     def get_word_of_the_day(self):
-        wordOfTheDay = self.wordOfTheDayCache.get(datetime.now().day, None)
+        wordOfTheDay = self.wordOfTheDayCache.get(datetime.today().strftime('%Y-%m-%d'), None)
         if wordOfTheDay and wordOfTheDay in self.dictionaryCache:
             return self.dictionaryCache[wordOfTheDay]
         wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
@@ -89,5 +88,5 @@ class Dictionary(object):
         }
         self.dictionaryCache.update({wordOfTheDay.word: word_dict})
         self.wordOfTheDayCache.clear()
-        self.wordOfTheDayCache[datetime.now().day] = wordOfTheDay.word
+        self.wordOfTheDayCache[datetime.today().strftime('%Y-%m-%d')] = wordOfTheDay.word
         return word_dict
