@@ -46,27 +46,13 @@ def send_word_of_the_day(message):
 
 @wordbot.inline_handler(lambda query: True)
 def handle_inline_query(inline_query):
-    default_word = dictionary.get_word_of_the_day()
     inline_answers = []
-    if default_word:
-        default_result = types.InlineQueryResultArticle(
-            "1",
-            "Word of the day",
-            types.InputTextMessageContent(
-                "{}\n\n{}".format(
-                    bold(default_word["word"]), format_definitions(default_word)
-                ),
-                parse_mode="markdown",
-            ),
-            description=default_word["word"],
-        )
-        inline_answers = [default_result]
     query_word = inline_query.query
     if query_word or query_word != "":
         reply = make_reply("/define " + query_word)
         desc = reply if reply == "Word not found." else None
         query_result = types.InlineQueryResultArticle(
-            "2",
+            "1",
             query_word,
             types.InputTextMessageContent(reply, parse_mode="markdown"),
             description=desc,
