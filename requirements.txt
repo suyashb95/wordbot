@@ -2,5 +2,5 @@ tornado==6.3.3
 requests==2.31.0
 pyTelegramBotAPI==4.23.0
 cachetools==5.5.2
-aws_lambda_powertools==3.6.0
 wordnik-py3==2.1.2
+flask==3.0.0
