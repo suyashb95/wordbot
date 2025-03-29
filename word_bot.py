@@ -11,13 +11,8 @@ dictionary = Dictionary()
 
 
 def send_reply(message, text):
-    if text != "":
-        try:
-            wordbot.send_chat_action(message.chat.id, "typing")
-            wordbot.send_message(message.chat.id, text, parse_mode="markdown")
-        except Exception as e:
-            logging.error(e)
-            logging.error(message)
+    wordbot.send_chat_action(message.chat.id, "typing")
+    wordbot.send_message(message.chat.id, text, parse_mode="markdown")
 
 
 @wordbot.message_handler(commands=["start", "help"])

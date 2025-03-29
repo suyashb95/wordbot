@@ -29,11 +29,8 @@ def root():
 @app.route("/message", methods=["POST"])
 def process_update():
     request_data = request.get_json()
-    if 'message' in request_data and 'reply_to_message' in request_data.get('message'): 
-        return {
-            "statusCode": 200
-        }
-    wordbot.process_new_updates([telebot.types.Update.de_json(json.dumps(request_data))])
+    if request_data['message']['text']:
+        wordbot.process_new_updates([telebot.types.Update.de_json(json.dumps(request_data))])
     return {
         "statusCode": 200
     }
