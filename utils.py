@@ -1,9 +1,9 @@
-def italics(string):
-    return "_{}_".format(string)
+def italics(string: str) -> str:
+    return f"_{string}_"
 
 
-def bold(string):
-    return "*{}*".format(string)
+def bold(string: str) -> str:
+    return f"*{string}*"
 
 
 def format_definitions(word_data):
