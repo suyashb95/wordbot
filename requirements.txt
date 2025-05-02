@@ -1,5 +1,5 @@
 tornado==6.3.3
-requests==2.31.0
+requests==2.32.2
 pyTelegramBotAPI==4.23.0
 cachetools==5.5.2
 wordnik-py3==2.1.2
