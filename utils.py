@@ -1,3 +1,6 @@
+from typing import Optional 
+from dataclass import Word, Definition
+
 def italics(string: str) -> str:
     return f"_{string}_"
 
@@ -6,47 +9,36 @@ def bold(string: str) -> str:
     return f"*{string}*"
 
 
-def format_definitions(word_data):
-    message = "{}\n".format(bold("Definitions"))
-    for definition in word_data["definitions"]:
-        def_string = "{} : {}".format(
-            italics(definition.partOfSpeech), definition.text
-        )
-        message += "{}\n\n".format(def_string)
+def format_definitions(word: Optional[Word] = None) -> Optional[str]:
+    if not word or not word.definitions: return None
+    message = f"{bold("Definitions")}\n"
+    for definition in word.definitions:
+        def_string = f"{definition.part_of_speech} : {definition.text}"
+        message += f"{def_string}\n\n"
     return message
 
 
-def format_example(word_data):
-    if not word_data["example"]:
-        return "No example found"
-    message = "{}\n".format(bold("Example"))
-    message += "{}\n\n".format(word_data["example"].text)
+def format_example(word: Optional[Word] = None) -> Optional[str]:
+    if not word or not word.example:
+        return None
+    message = f"{bold("Examples")}\n"
+    message += f"{word.example}\n\n"
     return message
 
 
-def format_synonyms(word_data):
-    if not word_data["synonyms"]:
-        return "No synonyms found"
-    message = "{}\n".format(bold("Synonyms"))
-    for synonym in word_data["synonyms"]:
-        message += "{}\n".format(synonym)
+def format_synonyms(word: Optional[Word] = None) -> Optional[str]:
+    if not word or not word.synonyms:
+        return None
+    message = f"{bold("Synonyms")}\n"
+    for synonym in word.synonyms:
+        message += f"{synonym}\n"
     return message
 
 
-def format_antonyms(word_data):
-    if not word_data["antonyms"]:
-        return "No antonyms found"
-    message = "{}\n".format(bold("Antonyms"))
-    for antonym in word_data["antonyms"]:
-        message += "{}\n".format(antonym)
-    return message
-
-
-def format_urbandictionary(word_data):
-    message = "{}\n{}\n\n{}\n{}".format(
-        bold("Definition"),
-        word_data["definition"],
-        bold("Example"),
-        word_data["example"],
-    )
+def format_antonyms(word: Optional[Word] = None) -> Optional[str]:
+    if not word or not word.antonyms:
+        return None
+    message = f"{bold("Antonyms")}\n"
+    for antonym in word.antonyms:
+        message += f"{antonym}\n"
     return message

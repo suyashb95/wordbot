@@ -15,7 +15,6 @@ It uses Wordnik's API to fetch data.
 #### Usage
 
 * Visit [the bot](https://telegram.me/anotherwordbot) or send a message to @anotherwordbot
-
 * Inline mode is supported. 
 
 #### Allowed commands

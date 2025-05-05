@@ -14,6 +14,10 @@ def send_reply(message, text):
     wordbot.send_chat_action(message.chat.id, "typing")
     wordbot.send_message(message.chat.id, text, parse_mode="markdown")
 
+def get_query_phrase(text):
+    query = text.replace("@anotherwordbot", "")
+    return ' '.join(query.split()[1::])
+
 
 @wordbot.message_handler(commands=["start", "help"])
 def send_help_message(message):
@@ -21,21 +25,53 @@ def send_help_message(message):
 
 
 @wordbot.message_handler(
-    commands=["define", "all", "synonyms", "antonyms", "use"], content_types=["text"]
+    commands=["all"], content_types=["text"]
 )
-def default_message_handler(message):
-    if message.new_chat_member or not message.text:
-        return
-    query = message.text.replace("@anotherwordbot", "")
-    reply = make_reply(query)
+def all_handler(message):
+    word = get_query_phrase(message.text)
+    word_data = dictionary.get_word(word)
+    reply = f"{bold(word)}\n\n{format_definitions(word_data)}" if word_data else "Definitions not found."
+    reply += f"{format_synonyms(word_data) if word_data.synonyms else "Synonyms not found"}\n"
+    reply += f"{format_antonyms(word_data) if word_data.antonyms else "Antonyms not found"}\n"
+    reply += f"{format_example(word_data) if word_data.example else "Examples not found"}\n"
     send_reply(message, reply)
 
 
-@wordbot.message_handler(commands=["today"], content_types=["text"])
-def send_word_of_the_day(message):
-    word_data = dictionary.get_word_of_the_day()
-    query = "/define " + word_data["word"]
-    reply = make_reply(query)
+@wordbot.message_handler(
+    commands=["define"], content_types=["text"]
+)
+def definitions_handler(message):
+    word = get_query_phrase(message.text)
+    word_data = dictionary.get_word(word)
+    reply = f"{bold(word)}\n\n{format_definitions(word_data)}" if word_data.definitions else "Definitions not found."
+    send_reply(message, reply)
+
+@wordbot.message_handler(
+    commands=["use"], content_types=["text"]
+)
+def examples_handler(message):
+    word = get_query_phrase(message.text)
+    word_data = dictionary.get_word(word)
+    reply = f"{bold(word)}\n\n{format_example(word_data) if word_data.example else 'Antonyms not found.'}"
+    send_reply(message, reply)
+
+@wordbot.message_handler(
+    commands=["synonyms"], content_types=["text"]
+)
+def synonyms_handler(message):
+    word = get_query_phrase(message.text)
+    word_data = dictionary.get_word(word)
+    reply = f"{bold(word)}\n\n{format_synonyms(word_data) if word_data.synonyms else 'Synonyms not found.'}"
+    send_reply(message, reply)
+
+
+@wordbot.message_handler(
+    commands=["antonyms"], content_types=["text"]
+)
+def antonyms_handler(message):
+    word = get_query_phrase(message.text)
+    word_data = dictionary.get_word(word)
+    reply = f"{bold(word)}\n\n{format_antonyms(word_data) if word_data.antonyms else 'Antonyms not found.'}"
     send_reply(message, reply)
 
 
@@ -44,7 +80,8 @@ def handle_inline_query(inline_query):
     inline_answers = []
     query_word = inline_query.query
     if query_word or query_word != "":
-        reply = make_reply("/define " + query_word)
+        word_data = dictionary.get_word(query_word)
+        reply = f"{bold(query_word)}\n\n{format_definitions(word_data) if word_data else 'Word not found.'}"
         desc = reply if reply == "Word not found." else None
         query_result = types.InlineQueryResultArticle(
             "1",
@@ -54,27 +91,6 @@ def handle_inline_query(inline_query):
         )
         inline_answers = [query_result]
     wordbot.answer_inline_query(inline_query.id, inline_answers)
-
-
-def make_reply(query):
-    reply_message = ""
-    query = query.split()
-    if len(query) > 1:
-        if query[0] in ["/define", "/synonyms", "/antonyms", "/use", "/all"]:
-            word = " ".join(query[1::])
-            reply_message = "{}\n\n".format(bold(word))
-            word_data = dictionary.get_word(word)
-            if word_data is None:
-                return "Word not found"
-            if query[0] in ["/define", "/all"]:
-                reply_message += format_definitions(word_data)
-            if query[0] in ["/synonyms", "/all"]:
-                reply_message += format_synonyms(word_data) + "\n"
-            if query[0] in ["/antonyms", "/all"]:
-                reply_message += format_antonyms(word_data) + "\n"
-            if query[0] in ["/use"]:
-                reply_message += format_example(word_data)
-    return reply_message
 
 
 if __name__ == "__main__":

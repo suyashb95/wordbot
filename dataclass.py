@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Definition:
-    partOfSpeech: str
+    part_of_speech: str
     text: str
 
 

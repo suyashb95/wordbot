@@ -5,16 +5,12 @@ from datetime import datetime
 from cachetools import LFUCache
 from collections import Counter
 from wordnik import swagger, WordApi, WordsApi
-
+from dataclass import Word, Definition
 
 class Dictionary(object):
     def __init__(self):
         self.word_api = WordApi.WordApi(swagger.ApiClient(wordnik_api_key, wordnik_api))
-        self.wordoftheday_api = WordsApi.WordsApi(
-            swagger.ApiClient(wordnik_api_key, wordnik_api)
-        )
-        self.dictionaryCache = LFUCache(maxsize=1000)
-        self.wordOfTheDayCache = {}
+        self.dictionary_cache = LFUCache(maxsize=1000)
         self.session = requests.Session()
         self.session.mount("http://", requests.adapters.HTTPAdapter(max_retries=5))
         self.session.mount("https://", requests.adapters.HTTPAdapter(max_retries=5))
@@ -27,8 +23,8 @@ class Dictionary(object):
         return definition.partOfSpeech and definition.text
 
     def get_word(self, word):
-        if word in self.dictionaryCache:
-            return self.dictionaryCache[word]
+        if word in self.dictionary_cache:
+            return self.dictionary_cache[word]
         definitions = self.word_api.getDefinitions(word, limit=20, useCanonical=True)
         if not definitions:
             return None
@@ -46,47 +42,14 @@ class Dictionary(object):
         )
         if not relatedWords:
             relatedWords = []
-        synonyms = [x for x in relatedWords if x.relationshipType == "synonym"]
-        antonyms = [x for x in relatedWords if x.relationshipType == "antonym"]
-        word_dict = {
-            "word": word,
-            "definitions": definitions,
-            "example": sorted(examples.examples, key=lambda x: len(x.text))[0],
-            "synonyms": synonyms[0].words if synonyms else [],
-            "antonyms": antonyms[0].words if antonyms else [],
-        }
-        self.dictionaryCache.update({word: word_dict})
-        return word_dict
-
-    def get_word_of_the_day(self):
-        wordOfTheDay = self.wordOfTheDayCache.get(datetime.today().strftime('%Y-%m-%d'), None)
-        if wordOfTheDay and wordOfTheDay in self.dictionaryCache:
-            return self.dictionaryCache[wordOfTheDay]
-        wordOfTheDay = self.wordoftheday_api.getWordOfTheDay()
-        try:
-            relatedWords = self.word_api.getRelatedWords(
-                wordOfTheDay.word, limitPerRelationshipType=5, useCanonical=True
-            )
-        except Exception:
-            relatedWords = []
-        synonyms = (
-            [x for x in relatedWords if x.relationshipType == "synonym"]
-            if relatedWords
-            else []
+        synonyms = [x.words for x in relatedWords if x.relationshipType == "synonym"]
+        antonyms = [x.words for x in relatedWords if x.relationshipType == "antonym"]
+        word_dict = Word(
+            word=word,
+            definitions=[Definition(part_of_speech=d.partOfSpeech, text=d.text) for d in definitions],
+            example=sorted(examples.examples, key=lambda x: len(x.text))[0].text,
+            synonyms=synonyms,
+            antonyms=antonyms,
         )
-        antonyms = (
-            [x for x in relatedWords if x.relationshipType == "antonym"]
-            if relatedWords
-            else []
-        )
-        word_dict = {
-            "word": wordOfTheDay.word,
-            "definitions": wordOfTheDay.definitions,
-            "example": sorted(wordOfTheDay.examples, key=lambda x: len(x.text))[0],
-            "synonyms": synonyms,
-            "antonyms": antonyms,
-        }
-        self.dictionaryCache.update({wordOfTheDay.word: word_dict})
-        self.wordOfTheDayCache.clear()
-        self.wordOfTheDayCache[datetime.today().strftime('%Y-%m-%d')] = wordOfTheDay.word
+        self.dictionary_cache.update({word: word_dict})
         return word_dict
