@@ -1,4 +1,4 @@
-tornado==6.3.3
+tornado==6.5.1
 requests==2.31.0
 pyTelegramBotAPI==4.23.0
 cachetools==5.5.2
