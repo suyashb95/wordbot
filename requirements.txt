@@ -3,4 +3,4 @@ requests==2.31.0
 pyTelegramBotAPI==4.23.0
 cachetools==5.5.2
 wordnik-py3==2.1.2
-flask==3.0.0
+flask==3.1.3
